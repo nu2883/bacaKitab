@@ -71,14 +71,33 @@
     <header class="header-controls">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <button @click="onScanClick" :class="{'opacity-60 cursor-not-allowed': requireApiKeyForOCR && !isApiKeySet}" class="px-3 py-1 rounded-lg bg-red-500 text-white flex items-center gap-2">
-            📸 Scan Gambar
-          </button>
-          <input id="ocr-upload" type="file" accept="image/*" capture="environment" class="hidden" @change="handleImageUpload">
+          <!-- Ganti bagian tombol Scan lama dengan ini -->
+<div class="flex items-center gap-2">
+  <!-- Tombol utama: Camera -->
+  <button
+    @click="onScanCamera"
+    :class="{'opacity-60 cursor-not-allowed': requireApiKeyForOCR && !isApiKeySet}"
+    class="px-3 py-1 rounded-lg bg-red-500 text-white flex items-center gap-2"
+    title="Ambil foto menggunakan kamera">
+    📸 Kamera
+  </button>
+
+  <!-- Tombol Galeri -->
+  <button
+    @click="onScanGallery"
+    class="px-3 py-1 rounded-lg bg-amber-500 text-white flex items-center gap-2"
+    title="Pilih gambar dari galeri">
+    📁 Galeri
+  </button>
+
+  <!-- Hidden inputs: satu dengan capture (kamera), satu tanpa (galeri) -->
+  <input id="ocr-upload-camera" type="file" accept="image/*" capture="environment" class="hidden" @change="handleImageUpload">
+  <input id="ocr-upload-gallery" type="file" accept="image/*" class="hidden" @change="handleImageUpload">
+</div>
 
           <button @click="openApiKeyModal" class="p-1.5 rounded-full bg-gray-100 ml-2">🔑 API Key</button>
 
-          <a href="https://ai.google.dev/gemini-api/docs/api-key" target="_blank" rel="noopener noreferrer" class="ml-2 text-sm text-blue-600 hover:underline">Dapatkan API Key</a>
+          
         </div>
 
         <div class="flex items-center gap-2">
@@ -91,29 +110,23 @@
         <div class="flex items-center gap-3">
           <label class="flex items-center gap-2"><input type="checkbox" v-model="showArabic"> Harokat</label>
           <label class="flex items-center gap-2"><input type="checkbox" v-model="showMeaning"> Arti</label>
-          <label class="flex items-center gap-2"><span class="text-sm">TTS:</span>
-            <select v-model="ttsMode" class="border rounded px-2 py-1">
-              <option value="arab-arti">Arab + Arti</option>
-              <option value="arti">Arti</option>
-              <option value="arab">Arab</option>
-            </select>
-          </label>
+         
         </div>
-        <button @click="toggleReading" class="px-3 py-1 rounded bg-green-500 text-white"><span v-if="!isSpeaking">🔊 Baca</span><span v-else>🔇 Berhenti</span></button>
+        
       </div>
     </header>
 
     <!-- Bubble -->
     <div v-if="activeBubble" class="bubble-dialog-fixed" role="dialog" aria-live="polite">
-      <div style="font-family:'Amiri',serif;font-size:1.15rem;text-align:center">{{ activeBubble.item.arab || activeBubble.item }}</div>
+      <div style="font-family:'Amiri',serif;font-size:2.15rem;text-align:center">{{ activeBubble.item.arab || activeBubble.item }}</div>
       <div class="mt-3 text-sm">
-        <p><strong>Arti:</strong> {{ activeBubble.item.arti || '(tidak tersedia)' }}</p>
+        <p><strong>Arti:</strong> {{ activeBubble.item.arti || '(tidak tersedia)' }}</p><br>
         <p><strong>Kedudukan:</strong> {{ activeBubble.item.kedudukan || '(tidak tersedia)' }}</p>
-        <p class="text-xs mt-1 text-gray-600">Latin: {{ activeBubble.item.latin || '-' }}</p>
+        <!-- <p class="text-xs mt-1 text-gray-600">Latin: {{ activeBubble.item.latin || '-' }}</p> -->
       </div>
       <div class="mt-3 flex gap-2 justify-center">
-        <button @click="addToMyDictionary(activeBubble.item)" class="px-4 py-1 rounded bg-blue-600 text-white">Simpan</button>
-        <button @click="toggleReading(activeBubble.item)" class="px-4 py-1 rounded bg-green-500 text-white"><span v-if="!isSpeaking">🔊 Baca</span><span v-else>🔇 Berhenti</span></button>
+        <!-- <button @click="addToMyDictionary(activeBubble.item)" class="px-4 py-1 rounded bg-blue-600 text-white">Simpan</button>
+        <button @click="toggleReading(activeBubble.item)" class="px-4 py-1 rounded bg-green-500 text-white"><span v-if="!isSpeaking">🔊 Baca</span><span v-else>🔇 Berhenti</span></button> -->
         <button @click="closeBubble" class="px-4 py-1 rounded bg-red-500 text-white">Tutup</button>
       </div>
     </div>
@@ -165,8 +178,9 @@
     </div>
 
     <!-- Main -->
+     <br>
     <div class="book">
-      <div class="flex justify-between items-center border-b pb-2 mb-4">
+      <div class="flex justify-between items-center border-b pb-2 mb-4 mt-4">
         <div class="text-lg font-semibold">Teks Arab Interaktif</div>
         <div><button @click="copyArabicText" :disabled="dataAwal.length===0" class="px-3 py-1 rounded bg-blue-600 text-white">📋 Salin Teks Arab</button></div>
       </div>
@@ -266,259 +280,333 @@
           this.initGeminiClient();
         }
       },
-      methods: {
-        openApiKeyModal() { this.tempApiKey = localStorage.getItem(API_KEY_STORAGE_KEY) || ''; this.showApiKeyModal = true; },
-        closeApiKeyModal() { this.showApiKeyModal = false; this.tempApiKey = ''; },
+methods: {
+  // ---- API Key Modal ----
+  openApiKeyModal() {
+    this.tempApiKey = localStorage.getItem(API_KEY_STORAGE_KEY) || '';
+    this.showApiKeyModal = true;
+  },
+  closeApiKeyModal() {
+    this.showApiKeyModal = false;
+    this.tempApiKey = '';
+  },
 
-        async saveApiKey() {
-          if (!this.tempApiKey) return;
-          localStorage.setItem(API_KEY_STORAGE_KEY, this.tempApiKey.trim());
-          this.isApiKeySet = true;
-          this.showApiKeyModal = false;
-          this.showToastNotification('API Key disimpan — mencoba inisialisasi...', 'green');
-          await this.initGeminiClient();
-        },
+  async saveApiKey() {
+    if (!this.tempApiKey) return;
+    localStorage.setItem(API_KEY_STORAGE_KEY, this.tempApiKey.trim());
+    this.isApiKeySet = true;
+    this.showApiKeyModal = false;
+    this.showToastNotification('API Key disimpan — mencoba inisialisasi...', 'green');
+    await this.initGeminiClient();
+  },
 
-        async initGeminiClient() {
-          const key = localStorage.getItem(API_KEY_STORAGE_KEY);
-          if (!key) {
-            this.showToastNotification('API Key tidak ditemukan.', 'red');
-            return;
-          }
-          this.loading = true;
-          this.loadingMessage = 'Menginisialisasi koneksi AI (Gemini)...';
-          try {
-            const mod = await import('https://unpkg.com/@google/genai?module');
-            if (!mod || !mod.GoogleGenAI) throw new Error('Modul genai tidak tersedia dari unpkg');
-            this.aiClient = new mod.GoogleGenAI({ apiKey: key });
-            console.log('Gemini client initialized:', this.aiClient);
-            this.showToastNotification('AI client berhasil diinisialisasi.', 'green');
-          } catch (err) {
-            console.error('initGeminiClient error:', err);
-            this.aiClient = null;
-            this.showToastNotification('Gagal inisialisasi AI client. Gunakan OCR lokal (fallback).', 'orange');
-          } finally {
-            this.loading = false;
-            this.loadingMessage = 'Memproses...';
-          }
-        },
+  async initGeminiClient() {
+    const key = localStorage.getItem(API_KEY_STORAGE_KEY);
+    if (!key) {
+      this.showToastNotification('API Key tidak ditemukan.', 'red');
+      return;
+    }
+    this.loading = true;
+    this.loadingMessage = 'Menginisialisasi koneksi AI (Gemini)...';
+    try {
+      // Dynamic import from unpkg (module)
+      const mod = await import('https://unpkg.com/@google/genai?module');
+      if (!mod || !mod.GoogleGenAI) throw new Error('Modul genai tidak tersedia dari unpkg');
+      this.aiClient = new mod.GoogleGenAI({ apiKey: key });
+      console.log('Gemini client initialized:', this.aiClient);
+      this.showToastNotification('AI client berhasil diinisialisasi.', 'green');
+    } catch (err) {
+      console.error('initGeminiClient error:', err);
+      this.aiClient = null;
+      // keep isApiKeySet true because we did save key; but inform user client init failed
+      this.isApiKeySet = true;
+      this.showToastNotification('Gagal inisialisasi AI client. OCR lokal akan digunakan.', 'orange');
+    } finally {
+      this.loading = false;
+      this.loadingMessage = 'Memproses...';
+    }
+  },
 
-        onScanClick() {
-          if (this.requireApiKeyForOCR && !this.isApiKeySet) {
-            this.showToastNotification('Masukkan API Key dahulu.', 'orange');
-            return;
-          }
-          const input = document.getElementById('ocr-upload');
-          if (input) input.click();
-        },
+  confirmDeleteApiKey() {
+    if (confirm('Hapus API Key?')) {
+      localStorage.removeItem(API_KEY_STORAGE_KEY);
+      this.aiClient = null;
+      this.isApiKeySet = false;
+      this.showToastNotification('API Key dihapus', 'green');
+    }
+  },
 
-        async handleImageUpload(event) {
-          this.loading = true;
-          this.loadingMessage = 'Memproses gambar...';
-          console.log('handleImageUpload start');
+  // ---- Scan (Camera / Gallery) ----
+  onScanCamera() {
+    if (this.requireApiKeyForOCR && !this.isApiKeySet) {
+      this.showToastNotification('Masukkan API Key dahulu.', 'orange');
+      return;
+    }
+    const input = document.getElementById('ocr-upload-camera') || document.getElementById('ocr-upload');
+    if (!input) { console.warn('Input camera not found'); return; }
+    input.value = '';
+    input.click();
+  },
 
-          const file = event.target.files && event.target.files[0];
-          if (!file) {
-            this.loading = false;
-            this.showToastNotification('File tidak ditemukan.', 'red');
-            return;
-          }
+  onScanGallery() {
+    if (this.requireApiKeyForOCR && !this.isApiKeySet) {
+      this.showToastNotification('Masukkan API Key dahulu.', 'orange');
+      return;
+    }
+    const input = document.getElementById('ocr-upload-gallery') || document.getElementById('ocr-upload');
+    if (!input) { console.warn('Input gallery not found'); return; }
+    input.value = '';
+    input.click();
+  },
 
-          // reset view & bubble
-          this.dataAwal = [];
-          this.closeBubble();
+  // ---- Handle Image Upload (Gemini vision -> JSON nahwu) with Tesseract fallback ----
+  async handleImageUpload(event) {
+    this.loading = true;
+    this.loadingMessage = 'Memproses gambar...';
+    console.log('handleImageUpload start');
 
-          // helper to persist results
-          const persistAndNotify = (arr, note) => {
-            this.dataAwal = arr;
-            try { localStorage.setItem(NAHWU_STORAGE_KEY, JSON.stringify(arr)); } catch(e){ console.warn(e); }
-            this.showToastNotification(note || 'Selesai', 'green');
-          };
+    const file = event.target.files && event.target.files[0];
+    if (!file) {
+      this.loading = false;
+      this.showToastNotification('File tidak ditemukan.', 'red');
+      return;
+    }
 
-          try {
-            // convert file to base64 (for Gemini)
-            this.loadingMessage = 'Membaca file...';
-            const base64 = await new Promise((resolve, reject) => {
-              const r = new FileReader();
-              r.onload = () => resolve(String(r.result || '').split(',')[1] || '');
-              r.onerror = reject;
-              r.readAsDataURL(file);
-            });
+    // reset UI state
+    this.dataAwal = [];
+    this.closeBubble();
 
-            // If aiClient available, try Gemini OCR+Nahwu
-            if (this.aiClient) {
-              try {
-                this.loadingMessage = '1/2: Menjalankan OCR (vision) via Gemini...';
-                const imagePart = { inlineData: { data: base64, mimeType: file.type } };
-                const visionPrompt = "Ekstrak semua teks Arab yang terlihat jelas dari gambar ini. Keluarkan hanya teks Arab mentah, tanpa penjelasan tambahan.";
-                const visionResp = await this.aiClient.models.generateContent({
-                  model: "gemini-2.5-flash",
-                  contents: [ imagePart, { text: visionPrompt } ],
-                });
-                let rawArabicText = (visionResp && (visionResp.text || visionResp.output_text || (visionResp.candidates && visionResp.candidates[0] && visionResp.candidates[0].content))) || '';
-                rawArabicText = String(rawArabicText).trim();
-                console.log('rawArabicText (gemini vision):', rawArabicText);
+    // helper untuk simpan & notifikasi
+    const persistResults = (arr, note) => {
+      this.dataAwal = arr;
+      try { localStorage.setItem(NAHWU_STORAGE_KEY, JSON.stringify(arr)); } catch(e) { console.warn(e); }
+      this.showToastNotification(note || 'Selesai', 'green');
+    };
 
-                if (!rawArabicText) throw new Error('Gemini: teks Arab tidak terdeteksi.');
+    try {
+      // baca file jadi base64 (untuk Gemini)
+      this.loadingMessage = 'Membaca file...';
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || '').split(',')[1] || '');
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
 
-                // Ask Gemini to produce JSON nahwu
-                this.loadingMessage = "2/2: Menganalisis Nahwu & menghasilkan JSON (Gemini)...";
-                const nahwuPrompt = `Analisis teks Arab berikut dan keluarkan HANYA JSON array sesuai format: no, arab, arti (Indonesia, wajib), kedudukan, noHarokat, latin. Teks: """${rawArabicText}"""`;
-                const nahwuResp = await this.aiClient.models.generateContent({
-                  model: "gemini-2.5-flash",
-                  contents: [{ role: "user", parts: [{ text: nahwuPrompt }] }],
-                  config: { systemInstruction: "Anda ahli nahwu. Keluaran HARUS berupa JSON array sesuai schema; jangan tambahkan teks lain.", responseMimeType: "application/json" }
-                });
+      // Jika aiClient tersedia, coba pipeline Gemini (vision -> nahwu JSON)
+      if (this.aiClient) {
+        try {
+          this.loadingMessage = '1/2: Menjalankan OCR (vision) via Gemini...';
+          const imagePart = { inlineData: { data: base64, mimeType: file.type } };
+          const visionPrompt = "Ekstrak semua teks Arab yang terlihat jelas dari gambar ini. Keluarkan hanya teks Arab mentah, tanpa penjelasan tambahan.";
+          const visionResp = await this.aiClient.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [ imagePart, { text: visionPrompt } ],
+          });
 
-                let jsonString = (nahwuResp && (nahwuResp.text || nahwuResp.output_text || (nahwuResp.candidates && nahwuResp.candidates[0] && nahwuResp.candidates[0].content))) || '';
-                jsonString = String(jsonString).trim();
-                console.log('nahwu json raw:', jsonString);
+          let rawArabicText = (visionResp && (visionResp.text || visionResp.output_text ||
+            (visionResp.candidates && visionResp.candidates[0] && visionResp.candidates[0].content))) || '';
+          rawArabicText = String(rawArabicText).trim();
+          console.log('rawArabicText (gemini vision):', rawArabicText);
 
-                // attempt to extract JSON array substring
-                const first = jsonString.indexOf('[');
-                const last = jsonString.lastIndexOf(']');
-                if (first !== -1 && last !== -1 && last > first) jsonString = jsonString.slice(first, last + 1);
+          if (!rawArabicText) throw new Error('Gemini: teks Arab tidak terdeteksi.');
 
-                const parsed = JSON.parse(jsonString);
-                if (!Array.isArray(parsed)) throw new Error('Respons AI bukan array JSON.');
+          // Nahwu -> minta JSON dari Gemini
+          this.loadingMessage = "2/2: Menganalisis Nahwu & menghasilkan JSON (Gemini)...";
+          const nahwuPrompt = `Analisis teks Arab berikut dan keluarkan HANYA JSON array sesuai format: no, arab, arti (Indonesia, wajib), kedudukan, noHarokat, latin. Teks: """${rawArabicText}"""`;
+          const nahwuResp = await this.aiClient.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [{ role: "user", parts: [{ text: nahwuPrompt }] }],
+            config: { systemInstruction: "Anda ahli nahwu. Keluaran HARUS berupa JSON array sesuai schema; jangan tambahkan teks lain.", responseMimeType: "application/json" }
+          });
 
-                const normalized = parsed.map((it, i) => ({
-                  no: it.no || (i+1),
-                  arab: it.arab || it.noHarokat || '',
-                  arti: it.arti || '',
-                  kedudukan: it.kedudukan || '',
-                  noHarokat: it.noHarokat || it.arab || '',
-                  latin: it.latin || ''
-                }));
+          let jsonString = (nahwuResp && (nahwuResp.text || nahwuResp.output_text ||
+            (nahwuResp.candidates && nahwuResp.candidates[0] && nahwuResp.candidates[0].content))) || '';
+          jsonString = String(jsonString).trim();
+          console.log('nahwu json raw:', jsonString);
 
-                persistAndNotify(normalized, `Analisis Gemini selesai: ${normalized.length} item disimpan.`);
-                this.loading = false;
-                return;
-              } catch (gerr) {
-                console.warn('Gemini pipeline failed, will fallback to local OCR:', gerr);
-                this.showToastNotification('Gemini error — menggunakan OCR lokal (fallback).', 'orange');
-                // fallthrough to Tesseract below
-              }
-            } else {
-              // If aiClient not present but user has API key set => try init and then proceed
-              if (this.isApiKeySet) {
-                try {
-                  await this.initGeminiClient();
-                  // if init succeeded, re-run handler by calling self with same file? simpler: continue and if aiClient now exists, it will try above on next iteration.
-                } catch(e){ /* ignore */ }
-              }
-            }
+          // ekstrak substring array JSON jika ada noise
+          const first = jsonString.indexOf('[');
+          const last = jsonString.lastIndexOf(']');
+          if (first !== -1 && last !== -1 && last > first) jsonString = jsonString.slice(first, last + 1);
 
-            // Fallback: Tesseract.js local OCR
-            this.loadingMessage = 'Melakukan OCR lokal (Tesseract.js)... (mendownload model bila perlu)';
-            console.log('Tesseract fallback start');
-            const t0 = performance.now();
-            const tRes = await Tesseract.recognize(file, 'ara', {
-              logger: m => {
-                if (this.debugMode) console.log('Tess log', m);
-              }
-            });
-            const t1 = performance.now();
-            const rawArabicTextLocal = (tRes && tRes.data && tRes.data.text) ? String(tRes.data.text).trim() : '';
-            console.log('rawArabicText (tesseract):', rawArabicTextLocal, 'elapsed ms', Math.round(t1-t0));
+          const parsed = JSON.parse(jsonString);
+          if (!Array.isArray(parsed)) throw new Error('Respons AI bukan array JSON.');
 
-            if (!rawArabicTextLocal) throw new Error('OCR lokal gagal mengekstrak teks Arabic.');
+          const normalized = parsed.map((it, i) => ({
+            no: it.no || (i+1),
+            arab: it.arab || it.noHarokat || '',
+            arti: it.arti || '',
+            kedudukan: it.kedudukan || '',
+            noHarokat: it.noHarokat || it.arab || '',
+            latin: it.latin || ''
+          }));
 
-            // simple split -> map to objects (arti kosong)
-            const tokens = rawArabicTextLocal.split(/\s+/).filter(Boolean);
-            const arr = tokens.map((tok, i) => ({
-              no: i+1,
-              arab: tok,
-              arti: '',
-              kedudukan: '',
-              noHarokat: tok,
-              latin: ''
-            }));
-
-            persistAndNotify(arr, `OCR lokal selesai: ${arr.length} kata/fragmen disimpan.`);
-          } catch (err) {
-            console.error('error during handleImageUpload:', err);
-            this.showToastNotification(err && err.message ? err.message : 'Gagal memproses gambar.', 'red');
-            // restore from storage if exists
-            const saved = localStorage.getItem(NAHWU_STORAGE_KEY);
-            if (saved && !this.dataAwal.length) {
-              try { this.dataAwal = JSON.parse(saved); } catch(e){}
-            }
-          } finally {
-            this.loading = false;
-            this.loadingMessage = 'Memproses...';
-            const fi = document.getElementById('ocr-upload'); if (fi) fi.value = '';
-            console.log('handleImageUpload finished');
-          }
-        },
-
-        handleWordClick(item, idx, event) {
-          this.clickedWordIndex = idx;
-          this.activeBubble = { item };
-          try { if (event && event.currentTarget && typeof event.currentTarget.focus === 'function') event.currentTarget.focus(); } catch (e) {}
-        },
-        closeBubble() { this.activeBubble = null; this.clickedWordIndex = null; this.activeWordIndex = null; },
-
-        // TTS
-        toggleReading(item = null) {
-          if (this.isSpeaking) { try { window.speechSynthesis.cancel(); } catch (e) {} this.isSpeaking = false; this.activeWordIndex = null; return; }
-          const arr = item ? [item] : this.dataAwal;
-          if (!arr || arr.length === 0) return this.showToastNotification('Tidak ada teks untuk dibaca.', 'orange');
-          this.startReading(arr);
-        },
-        startReading(data) {
-          this.isSpeaking = true;
-          let current = 0;
-          const voices = window.speechSynthesis.getVoices();
-          const arabVoice = voices.find(v => v.lang && v.lang.startsWith('ar')) || voices.find(v => /Arabic/i.test(v.name));
-          const idVoice = voices.find(v => v.lang && v.lang.startsWith('id')) || voices.find(v => /Indonesian/i.test(v.name));
-          const speakOne = () => {
-            if (!this.isSpeaking || current >= data.length) { this.isSpeaking = false; this.activeWordIndex = null; return; }
-            const item = data[current];
-            const globalIndex = this.dataAwal.findIndex(d => d.no === item.no && d.arab === item.arab);
-            this.activeWordIndex = globalIndex !== -1 ? String(globalIndex) : null;
-            let text = '', voice = null;
-            if (this.ttsMode === 'arab-arti') { text = (item.arab ? item.arab + '. ' : '') + (item.arti ? ('Artinya: ' + item.arti) : ''); voice = arabVoice || idVoice; }
-            else if (this.ttsMode === 'arti') { text = item.arti || ''; voice = idVoice; }
-            else { text = item.arab || item.noHarokat || ''; voice = arabVoice; }
-            if (!text) { current++; speakOne(); return; }
-            const u = new SpeechSynthesisUtterance(text);
-            if (voice) { u.voice = voice; u.lang = voice.lang || (this.ttsMode.includes('arab') ? 'ar-SA' : 'id-ID'); } else u.lang = this.ttsMode.includes('arab') ? 'ar-SA' : 'id-ID';
-            u.onend = () => { current++; speakOne(); };
-            u.onerror = () => { current++; speakOne(); };
-            try { window.speechSynthesis.speak(u); } catch (e) { console.error(e); current++; speakOne(); }
-          };
-          try { window.speechSynthesis.cancel(); } catch (e) {}
-          speakOne();
-        },
-
-        // kamus
-        addToMyDictionary(item) {
-          if (!item||!item.arab) return;
-          if (this.myDictionary.some(d=>d.arab===item.arab)) return this.showToastNotification('Sudah ada di kamus','orange');
-          const ni={...item,timestamp:Date.now()};
-          this.myDictionary.unshift(ni);
-          localStorage.setItem('myDictionary', JSON.stringify(this.myDictionary));
-          this.showToastNotification('Disimpan ke kamus','green');
-        },
-        removeFromDictionaryByTimestamp(ts){
-          const idx=this.myDictionary.findIndex(d=>d.timestamp===ts);
-          if(idx!==-1 && confirm('Hapus kata ini dari kamus?')){
-            this.myDictionary.splice(idx,1);
-            localStorage.setItem('myDictionary', JSON.stringify(this.myDictionary));
-            this.showToastNotification('Terhapus','green');
-          }
-        },
-
-        // UI helpers
-        toggleTheme(){ this.theme = this.theme==='light' ? 'dark' : 'light'; localStorage.setItem('theme', this.theme); document.body.className = this.theme; },
-        changeFontSize(delta){ this.fontSizeArabic = Math.max(14, this.fontSizeArabic + delta); },
-        copyArabicText(){ const txt = this.dataAwal.map(d=>d.arab||d.noHarokat).join(' '); navigator.clipboard.writeText(txt).then(()=>this.showToastNotification('Teks Arab disalin','green')).catch(()=>this.showToastNotification('Gagal menyalin','red')); },
-
-        confirmDeleteApiKey(){ if(confirm('Hapus API Key?')){ localStorage.removeItem(API_KEY_STORAGE_KEY); this.aiClient=null; this.isApiKeySet=false; this.showToastNotification('API Key dihapus','green'); } },
-
-        showToastNotification(message, type='green'){ this.toastMessage = message; this.toastType = type; this.showToast = true; clearTimeout(this._toastTimer); this._toastTimer = setTimeout(()=> this.showToast=false, 3000); }
+          persistResults(normalized, `Analisis Gemini selesai: ${normalized.length} item disimpan.`);
+          this.loading = false;
+          return;
+        } catch (gerr) {
+          console.warn('Gemini pipeline failed, fallback to local OCR:', gerr);
+          this.showToastNotification('Gemini gagal: menggunakan OCR lokal (fallback).', 'orange');
+          // fallthrough to Tesseract below
+        }
+      } else {
+        // jika aiClient belum ada tapi user punya key tersimpan, coba inisialisasi dan lanjutkan (optional)
+        if (this.isApiKeySet) {
+          try { await this.initGeminiClient(); } catch (e) { /* ignore */ }
+          // jika berhasil, kita tidak re-run otomatis; user dapat scan ulang
+        }
       }
+
+      // Fallback ke Tesseract.js (OCR lokal)
+      this.loadingMessage = 'Melakukan OCR lokal (Tesseract.js)... (mendownload model bila perlu)';
+      console.log('Tesseract fallback start');
+      const tRes = await Tesseract.recognize(file, 'ara', {
+        logger: m => { if (this.debugMode) console.log('Tess log', m); }
+      });
+      const rawArabicTextLocal = (tRes && tRes.data && tRes.data.text) ? String(tRes.data.text).trim() : '';
+      console.log('rawArabicText (tesseract):', rawArabicTextLocal);
+
+      if (!rawArabicTextLocal) throw new Error('OCR lokal gagal mengekstrak teks Arabic.');
+
+      // Sederhanakan menjadi token kata/frasa (Anda bisa mengganti strategi tokenisasi)
+      const tokens = rawArabicTextLocal.split(/\s+/).filter(Boolean);
+      const arr = tokens.map((tok, i) => ({
+        no: i+1,
+        arab: tok,
+        arti: '',
+        kedudukan: '',
+        noHarokat: tok,
+        latin: ''
+      }));
+
+      persistResults(arr, `OCR lokal selesai: ${arr.length} kata/fragmen disimpan.`);
+    } catch (err) {
+      console.error('error during handleImageUpload:', err);
+      this.showToastNotification(err && err.message ? err.message : 'Gagal memproses gambar.', 'red');
+      // restore local saved if exist
+      const saved = localStorage.getItem(NAHWU_STORAGE_KEY);
+      if (saved && !this.dataAwal.length) {
+        try { this.dataAwal = JSON.parse(saved); } catch(e){ console.warn(e); }
+      }
+    } finally {
+      this.loading = false;
+      this.loadingMessage = 'Memproses...';
+      // reset input value agar onchange terpanggil lagi
+      const fiCamera = document.getElementById('ocr-upload-camera');
+      const fiGallery = document.getElementById('ocr-upload-gallery');
+      const fi = document.getElementById('ocr-upload');
+      if (fiCamera) fiCamera.value = '';
+      if (fiGallery) fiGallery.value = '';
+      if (fi) fi.value = '';
+      console.log('handleImageUpload finished');
+    }
+  },
+
+  // ---- Interaksi kata (bubble, highlight) ----
+  handleWordClick(item, idx, event) {
+    this.clickedWordIndex = idx;
+    this.activeBubble = { item };
+    try { if (event && event.currentTarget && typeof event.currentTarget.focus === 'function') event.currentTarget.focus(); } catch (e) {}
+  },
+  closeBubble() {
+    this.activeBubble = null;
+    this.clickedWordIndex = null;
+    this.activeWordIndex = null;
+  },
+
+  // ---- TTS ----
+  toggleReading(item = null) {
+    if (this.isSpeaking) { try { window.speechSynthesis.cancel(); } catch(e){} this.isSpeaking = false; this.activeWordIndex = null; return; }
+    const arr = item ? [item] : this.dataAwal;
+    if (!arr || arr.length === 0) return this.showToastNotification('Tidak ada teks untuk dibaca.', 'orange');
+    this.startReading(arr);
+  },
+
+  startReading(data) {
+    this.isSpeaking = true;
+    let current = 0;
+    const voices = window.speechSynthesis.getVoices();
+    const arabVoice = voices.find(v => v.lang && v.lang.startsWith('ar')) || voices.find(v => /Arabic/i.test(v.name));
+    const idVoice = voices.find(v => v.lang && v.lang.startsWith('id')) || voices.find(v => /Indonesian/i.test(v.name));
+    const speakOne = () => {
+      if (!this.isSpeaking || current >= data.length) { this.isSpeaking = false; this.activeWordIndex = null; return; }
+      const item = data[current];
+      const globalIndex = this.dataAwal.findIndex(d => d.no === item.no && d.arab === item.arab);
+      this.activeWordIndex = globalIndex !== -1 ? String(globalIndex) : null;
+      let text = '', voice = null;
+      if (this.ttsMode === 'arab-arti') { text = (item.arab ? item.arab + '. ' : '') + (item.arti ? ('Artinya: ' + item.arti) : ''); voice = arabVoice || idVoice; }
+      else if (this.ttsMode === 'arti') { text = item.arti || ''; voice = idVoice; }
+      else { text = item.arab || item.noHarokat || ''; voice = arabVoice; }
+      if (!text) { current++; speakOne(); return; }
+      const u = new SpeechSynthesisUtterance(text);
+      if (voice) { u.voice = voice; u.lang = voice.lang || (this.ttsMode.includes('arab') ? 'ar-SA' : 'id-ID'); } else u.lang = this.ttsMode.includes('arab') ? 'ar-SA' : 'id-ID';
+      u.onend = () => { current++; speakOne(); };
+      u.onerror = () => { current++; speakOne(); };
+      try { window.speechSynthesis.speak(u); } catch (e) { console.error(e); current++; speakOne(); }
+    };
+    try { window.speechSynthesis.cancel(); } catch (e) {}
+    speakOne();
+  },
+
+  // ---- Kamus ----
+  addToMyDictionary(item) {
+    if (!item || !item.arab) return;
+    if (this.myDictionary.some(d => d.arab === item.arab)) return this.showToastNotification('Sudah ada di kamus', 'orange');
+    const ni = { ...item, timestamp: Date.now() };
+    this.myDictionary.unshift(ni);
+    localStorage.setItem('myDictionary', JSON.stringify(this.myDictionary));
+    this.showToastNotification('Disimpan ke kamus', 'green');
+  },
+
+  removeFromDictionaryByTimestamp(ts) {
+    const idx = this.myDictionary.findIndex(d => d.timestamp === ts);
+    if (idx !== -1 && confirm('Hapus kata ini dari kamus?')) {
+      this.myDictionary.splice(idx, 1);
+      localStorage.setItem('myDictionary', JSON.stringify(this.myDictionary));
+      this.showToastNotification('Terhapus', 'green');
+    }
+  },
+
+  toggleDictionarySort() {
+    this.dictionarySortDir = this.dictionarySortDir === 'desc' ? 'asc' : 'desc';
+  },
+
+  // ---- UI helpers ----
+  toggleTheme() {
+    this.theme = this.theme === 'light' ? 'dark' : 'light';
+    localStorage.setItem('theme', this.theme);
+    document.body.className = this.theme;
+  },
+
+  changeFontSize(delta) {
+    this.fontSizeArabic = Math.max(14, this.fontSizeArabic + delta);
+  },
+
+  copyArabicText() {
+    const txt = this.dataAwal.map(d => d.arab || d.noHarokat).join(' ');
+    navigator.clipboard.writeText(txt).then(() => this.showToastNotification('Teks Arab disalin', 'green')).catch(() => this.showToastNotification('Gagal menyalin', 'red'));
+  },
+
+  confirmDeleteApiKey() {
+    if (confirm('Hapus API Key?')) {
+      localStorage.removeItem(API_KEY_STORAGE_KEY);
+      this.aiClient = null;
+      this.isApiKeySet = false;
+      this.showToastNotification('API Key dihapus', 'green');
+    }
+  },
+
+  // ---- Toast helper ----
+  showToastNotification(message, type = 'green') {
+    this.toastMessage = message;
+    this.toastType = type;
+    this.showToast = true;
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => this.showToast = false, 3500);
+  }
+}
+
     });
   })();
   </script>
