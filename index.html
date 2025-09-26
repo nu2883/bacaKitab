@@ -64,7 +64,7 @@
     <div id="loading-overlay" :class="{ show: loading }" role="status" aria-live="polite">
       <div class="loader" aria-hidden="true"></div>
       <div style="font-weight:700">{{ loadingMessage }}</div>
-      <div v-if="debugMode" class="small mt-2 text-yellow-200">DEBUG: periksa console untuk log</div>
+      <!-- <div v-if="debugMode" class="small mt-2 text-yellow-200">DEBUG: periksa console untuk log</div> -->
     </div>
 
     <!-- Header -->
@@ -95,7 +95,7 @@
   <input id="ocr-upload-gallery" type="file" accept="image/*" class="hidden" @change="handleImageUpload">
 </div>
 
-          <button @click="openApiKeyModal" class="p-1.5 rounded-full bg-gray-100 ml-2">🔑 API Key</button>
+          <button @click="openApiKeyModal" class="p-1.5 rounded-full  ml-2">🔑 API Key</button>
 
           
         </div>
@@ -413,7 +413,7 @@ methods: {
 
           // Nahwu -> minta JSON dari Gemini
           this.loadingMessage = "2/2: Menganalisis Nahwu & menghasilkan JSON (Gemini)...";
-          const nahwuPrompt = `Analisis teks Arab berikut dan keluarkan HANYA JSON array sesuai format: no, arab, arti (Indonesia, wajib), kedudukan, noHarokat, latin. Teks: """${rawArabicText}"""`;
+          const nahwuPrompt = `Analisis teks Arab berikut dan keluarkan HANYA JSON array sesuai format (arab dengan harokat sesuai kaidah nahwu yg benar) seperti contoh : { "no": "1.", "arab": "النَّقْصِ", "arti": "kekurangan", "kedudukan": "Majrur", "noHarokat": "النقص", "latin": "al-naqṣi", "hal": 37, "row": 2 }, { "no": "2.", "arab": "إِلَى", "arti": "ke", "kedudukan": "Huruf jar", "noHarokat": "إلى", "latin": "ilā", "hal": 37, "row": 3 }, { "no": "3.", "arab": "حَالِ", "arti": "keadaan", "kedudukan": "Majrur, mudhaf", "noHarokat": "حال", "latin": "ḥāli", "hal": 37, "row": 4 }). Teks: """${rawArabicText}"""`;
           const nahwuResp = await this.aiClient.models.generateContent({
             model: "gemini-2.5-flash",
             contents: [{ role: "user", parts: [{ text: nahwuPrompt }] }],
