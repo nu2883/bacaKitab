@@ -79,7 +79,7 @@
     :class="{'opacity-60 cursor-not-allowed': requireApiKeyForOCR && !isApiKeySet}"
     class="px-3 py-1 rounded-lg bg-red-500 text-white flex items-center gap-2"
     title="Ambil foto menggunakan kamera">
-    📸 Kamera
+    📸 
   </button>
 
   <!-- Tombol Galeri -->
@@ -87,7 +87,7 @@
     @click="onScanGallery"
     class="px-3 py-1 rounded-lg bg-amber-500 text-white flex items-center gap-2"
     title="Pilih gambar dari galeri">
-    📁 Galeri
+    📁 
   </button>
 
   <!-- Hidden inputs: satu dengan capture (kamera), satu tanpa (galeri) -->
@@ -95,7 +95,7 @@
   <input id="ocr-upload-gallery" type="file" accept="image/*" class="hidden" @change="handleImageUpload">
 </div>
 
-          <button @click="openApiKeyModal" class="p-1.5 rounded-full  ml-2">🔑 API Key</button>
+          <button @click="openApiKeyModal" class="p-1.5 rounded-full  ml-2">🔑 API</button>
           <button @click="showDictionary = true; closeBubble();" class="p-1.5 rounded-full ml-2 bg-green-600 text-white">📚 </button>
 
           
