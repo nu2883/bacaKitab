@@ -415,8 +415,8 @@
             // ... (kelas styling lainnya yang sudah ada) ...
 
             // Warna Latar Belakang Kata Arab Setelah Dijawab
-            'bg-green-100 dark:bg-green-900/50': feedback[String(idx)] && feedback[String(idx)].status === 'correct' && isQuizMode, 
-            'bg-pink-100 dark:bg-pink-900/50': feedback[String(idx)] && feedback[String(idx)].status === 'wrong' && isQuizMode,
+            'bg-green-100 dark:bg-green-200': feedback[String(idx)] && feedback[String(idx)].status === 'correct' && isQuizMode, 
+            'bg-pink-100 dark:bg-pink-200': feedback[String(idx)] && feedback[String(idx)].status === 'wrong' && isQuizMode,
             'border-2 border-transparent': isQuizMode,
         }"
         @click.stop="isQuizMode ? startQuizForWord(String(idx), item) : handleWordClick(item, String(idx), $event)"
