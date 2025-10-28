@@ -437,36 +437,36 @@
         }}
       </span>
 
-      <div v-if="isQuizMode && activeWordIndex === String(idx) && quizChoices.length > 0" 
-        class="mt-2 flex flex-col gap-2 w-full max-w-xs rtl-text">
-        <button v-for="(choice, cidx) in quizChoices" :key="cidx"
+<div v-if="isQuizMode && activeWordIndex === String(idx) && quizChoices.length > 0" 
+    class="mt-2 flex flex-col gap-2 w-full max-w-xs rtl-text">
+    <button v-for="(choice, cidx) in quizChoices" :key="cidx"
+      
+      @click.stop="checkQuizAnswer(choice, String(idx), cidx, item)" 
+      
+      :class="[
+        // 🚨 PERUBAHAN DI SINI: 'border' dan 'dark:border-gray-600' DIHAPUS
+        'p-2 rounded-lg transition text-center shadow', 
+        {
+          // Warna saat BELUM diklik atau default
+          'bg-white hover:bg-indigo-100': quizFeedback[cidx] === null || quizFeedback[cidx] === undefined, 
           
-          @click.stop="checkQuizAnswer(choice, String(idx), cidx, item)" 
+          // Jawaban Salah: Pink Muda (border tetap ada di sini, untuk feedback)
+          'bg-pink-200 border border-pink-200 dark:bg-pink-200 dark:border-pink-200': quizFeedback[cidx] === 'wrong',
           
-          :class="[
-            'p-2 border rounded-lg transition text-center shadow dark:border-gray-600',
-            {
-              // Kode Perbaikan (Tombol Selalu Terang/Putih)
-'bg-white hover:bg-indigo-100': quizFeedback[cidx] === null || quizFeedback[cidx] === undefined, 
-// Hapus semua kelas dark: untuk kondisi default
-              
-              // Jawaban Salah: Pink Muda
-              'bg-pink-200 border-pink-400 dark:bg-pink-900 dark:border-pink-700': quizFeedback[cidx] === 'wrong',
-              
-              // Jawaban Benar: Hijau
-              'bg-green-200 border-green-400 dark:bg-green-900 dark:border-green-700': quizFeedback[cidx] === 'correct'
-            }
-          ]">
-          
-          {{ choice }}
-          
-          <span v-if="quizFeedback[cidx] === 'wrong'" 
-            class="ml-2 text-sm text-gray-700 font-bold dark:text-gray-200">
-            (Jawaban Benar: {{ item.arab }}) 
-          </span>
+          // Jawaban Benar: Hijau (border tetap ada di sini, untuk feedback)
+          'bg-green-200 border border-green-200 dark:bg-green-200 dark:border-green-200': quizFeedback[cidx] === 'correct'
+        }
+      ]">
+      
+      {{ choice }}
+      
+      <span v-if="quizFeedback[cidx] === 'wrong'" 
+        class="ml-2 text-sm text-gray-700 font-bold dark:text-gray-200">
+        (Jawaban Benar: {{ item.arab }}) 
+      </span>
 
-        </button>
-      </div>
+    </button>
+</div>
 
       <small class="word-meaning" 
         :class="{ 
