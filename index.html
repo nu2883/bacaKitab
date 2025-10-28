@@ -446,8 +446,9 @@
           :class="[
             'p-2 border rounded-lg transition text-center shadow dark:border-gray-600',
             {
-              // Warna saat BELUM diklik atau default
-              'bg-white hover:bg-indigo-100 dark:bg-gray-700 dark:hover:bg-indigo-800': quizFeedback[cidx] === null || quizFeedback[cidx] === undefined,
+              // Kode Perbaikan (Tombol Selalu Terang/Putih)
+'bg-white hover:bg-indigo-100': quizFeedback[cidx] === null || quizFeedback[cidx] === undefined, 
+// Hapus semua kelas dark: untuk kondisi default
               
               // Jawaban Salah: Pink Muda
               'bg-pink-200 border-pink-400 dark:bg-pink-900 dark:border-pink-700': quizFeedback[cidx] === 'wrong',
