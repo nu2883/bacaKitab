@@ -241,56 +241,55 @@
       <!-- <div v-if="debugMode" class="small mt-2 text-yellow-200">DEBUG: periksa console untuk log</div> -->
     </div>
 
-    <header class="header-controls">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <div class="flex items-center gap-2">
-            <button @click="onScanCamera"
-              :class="{'opacity-60 cursor-not-allowed': requireApiKeyForOCR && !isApiKeySet}"
-              class="px-3 py-1 rounded-lg bg-red-500 text-white flex items-center gap-2"
-              title="Ambil foto menggunakan kamera">
-              📸
-            </button>
+<header class="header-controls">
+  <div class="flex items-center justify-between flex-wrap gap-y-2">
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
+        <button @click="onScanCamera"
+          :class="{'opacity-60 cursor-not-allowed': requireApiKeyForOCR && !isApiKeySet}"
+          class="px-3 py-1 rounded-lg bg-red-500 text-white flex items-center gap-2"
+          title="Ambil foto menggunakan kamera">
+          📸
+        </button>
 
-            <button @click="onScanGallery" class="px-3 py-1 rounded-lg bg-amber-500 text-white flex items-center gap-2"
-              title="Pilih gambar dari galeri">
-              📁
-            </button>
+        <button @click="onScanGallery" class="px-3 py-1 rounded-lg bg-amber-500 text-white flex items-center gap-2"
+          title="Pilih gambar dari galeri">
+          📁
+        </button>
 
-            <button @click="isQuizMode = !isQuizMode" class="px-3 py-1 rounded bg-indigo-600 text-white">
-              {{ isQuizMode ? 'Keluar Mode Kuis' : 'Mode Kuis' }}
-            </button>
-
-            <input id="ocr-upload-camera" type="file" accept="image/*" capture="environment" class="hidden"
-              @change="handleImageUpload">
-            <input id="ocr-upload-gallery" type="file" accept="image/*" class="hidden" @change="handleImageUpload">
-          </div>
-
-          <button @click="openApiKeyModal" class="p-1.5 rounded-full ml-2">🔑 API Key</button>
-          <button @click="showDictionary = true; closeBubble();"
-            class="p-1.5 rounded-full ml-2 bg-green-600 text-white">📚 </button>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <button @click="changeFontSize(2)" class="px-2 py-1 rounded bg-gray-200">A+</button>
-          <button @click="changeFontSize(-2)" class="px-2 py-1 rounded bg-gray-200">A-</button>
-        </div>
+        <button @click="isQuizMode = !isQuizMode" class="px-3 py-1 rounded bg-indigo-600 text-white">
+          {{ isQuizMode ? 'Keluar Mode Kuis' : 'Mode Kuis' }}
+        </button>
       </div>
 
-      <div class="mt-2 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <label class="flex items-center gap-2"><input type="checkbox" v-model="showArabic"> Harokat</label>
+      <input id="ocr-upload-camera" type="file" accept="image/*" capture="environment" class="hidden"
+        @change="handleImageUpload">
+      <input id="ocr-upload-gallery" type="file" accept="image/*" class="hidden" @change="handleImageUpload">
 
-          <label class="flex items-center gap-2"><input type="checkbox" v-model="showMeaning"> Arti</label>
+      <button @click="openApiKeyModal" class="p-1.5 rounded-full">🔑 API Key</button>
+      <button @click="showDictionary = true; closeBubble();"
+        class="p-1.5 rounded-full bg-green-600 text-white">📚 Kamus </button>
+    </div>
 
-          <button @click="showLoadPageModal = true;"
-            class="p-1.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition duration-150 shadow-md"
-            title="Muat Halaman">
-            load data
-          </button>
-        </div>
-      </div>
-    </header>
+    <div class="flex items-center gap-3">
+      <label class="flex items-center gap-2"><input type="checkbox" v-model="showArabic"> Harokat</label>
+
+      <label class="flex items-center gap-2"><input type="checkbox" v-model="showMeaning"> Arti</label>
+
+      <button @click="showLoadPageModal = true;"
+        class="px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition duration-150 shadow-md"
+        title="Muat Halaman">
+        load data
+      </button>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button @click="changeFontSize(2)" class="px-2 py-1 rounded bg-gray-200">A+</button>
+      <button @click="changeFontSize(-2)" class="px-2 py-1 rounded bg-gray-200">A-</button>
+    </div>
+
+  </div>
+</header>
 
     <!-- Bubble -->
     <div v-if="activeBubble" class="bubble-dialog-fixed" role="dialog" aria-live="polite">
