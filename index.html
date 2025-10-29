@@ -199,25 +199,25 @@
       transform: translateY(-2px);
     }
 
-    .word-meaning {
-      display: block;
-      font-size: 0.68rem;
-      line-height: 1.05;
-      margin-top: 0.28rem;
-      max-width: 12ch;
-      text-align: center;
-      direction: ltr;
-      font-family: system-ui, Arial, sans-serif;
-      color: #065f46;
-      background: rgba(255, 255, 255, 0.9);
-      padding: 3px 6px;
-      border-radius: 6px;
-      box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
-      word-break: break-word;
-      white-space: normal;
-      pointer-events: none;
-      margin-bottom: 25px;
-    }
+.word-meaning {
+  display: block;
+  /* HAPUS: font-size: 0.68rem; */ 
+  line-height: 1.05;
+  margin-top: 0.28rem;
+  max-width: 12ch;
+  text-align: center;
+  direction: ltr;
+  font-family: system-ui, Arial, sans-serif;
+  color: #065f46;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 3px 6px;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
+  word-break: break-word;
+  white-space: normal;
+  pointer-events: none;
+  margin-bottom: 25px;
+}
 
     .word-meaning.hidden {
       display: none !important;
@@ -429,35 +429,40 @@
     <!-- Main -->
     <br>
     <!-- Teks Arab normal -->
-    <div v-if="!isQuizMode" class="book">
-      <div class="flex justify-between items-center border-b pb-2 mb-4 mt-4">
+<div v-if="!isQuizMode" class="book">
+    <div class="flex justify-between items-center border-b pb-2 mb-4 mt-4">
         <div class="text-lg font-semibold">Teks Arab Interaktif</div>
         <div><button @click="copyArabicText" :disabled="dataAwal.length===0"
             class="px-3 py-1 rounded bg-blue-600 text-white">📋 Salin Teks Arab</button></div>
-      </div>
+    </div>
 
-      <div v-if="dataAwal.length === 0" class="p-8 text-center text-gray-600 italic">Tekan <strong>Scan Gambar</strong>
+    <div v-if="dataAwal.length === 0" class="p-8 text-center text-gray-600 italic">Tekan <strong>Scan Gambar</strong>
         untuk mengunggah foto teks Arab atau muat hasil sebelumnya.</div>
 
-      <div v-else class="page-paragraph" :style="{ fontSize: fontSizeArabic + 'px' }" aria-live="polite">
+    <div v-else class="page-paragraph" :style="{ fontSize: fontSizeArabic + 'px' }" aria-live="polite">
         <template v-for="(item, idx) in dataAwal">
-          <span class="word-stack" :key="String(idx)" :data-key="String(idx)">
-            <span class="arab-word rtl-text" :class="{
-            'is-reading': isSpeaking && activeWordIndex === String(idx),
-            'has-meaning': item.arti,
-            'bg-yellow-200 dark:bg-yellow-900/50': activeBubble && clickedWordIndex === String(idx),
-            'hover:bg-yellow-100 dark:hover:bg-yellow-900/30': true
-          }" :data-meaning="(item.arti) ? item.arti : ''" @click.stop="handleWordClick(item, String(idx), $event)"
-              tabindex="0" role="button" :aria-label="`Kata Arab ${item.arab || item.noHarokat || idx}`">
-              {{ showArabic ? (item.arab || item.noHarokat) : (item.noHarokat || item.arab) }}
-            </span>
+            <span class="word-stack" :key="String(idx)" :data-key="String(idx)">
+                <span class="arab-word rtl-text" :class="{
+                'is-reading': isSpeaking && activeWordIndex === String(idx),
+                'has-meaning': item.arti,
+                'bg-yellow-200 dark:bg-yellow-900/50': activeBubble && clickedWordIndex === String(idx),
+                'hover:bg-yellow-100 dark:hover:bg-yellow-900/30': true
+                }" :data-meaning="(item.arti) ? item.arti : ''" @click.stop="handleWordClick(item, String(idx), $event)"
+                    tabindex="0" role="button" :aria-label="`Kata Arab ${item.arab || item.noHarokat || idx}`">
+                    {{ showArabic ? (item.arab || item.noHarokat) : (item.noHarokat || item.arab) }}
+                </span>
 
-            <small class="word-meaning" :class="{ hidden: !(showMeaning || clickedWordIndex === String(idx)) }"
-              aria-hidden="true">{{ item.arti || '—' }}</small>
-          </span>
+                <small class="word-meaning" 
+                    :class="{ hidden: !(showMeaning || clickedWordIndex === String(idx)) }"
+                    aria-hidden="true"
+                    
+                    :style="{ fontSize: fontSizeMeaning + 'px' }" 
+                    
+                >{{ item.arti || '—' }}</small>
+            </span>
         </template>
-      </div>
     </div>
+</div>
 
 
 <div v-if="isQuizMode" class="book page-paragraph rtl-text text-right" :style="{ fontSize: fontSizeArabic + 'px' }">
@@ -528,14 +533,20 @@
         </button>
       </div>
 
-      <small class="word-meaning" :class="{ 
+<small class="word-meaning" 
+    :class="{ 
         hidden: isQuizMode // JIKA MODE KUIS AKTIF
-          ? !answeredWordIndexes.includes(String(idx)) // Hidden JIKA BELUM dijawab
-          // JIKA MODE KUIS TIDAK AKTIF (Mode Normal)
-          : !(showMeaning || clickedWordIndex === String(idx)) 
-      }" aria-hidden="true">
-        {{ item.arti || '—' }}
-      </small>
+            ? !answeredWordIndexes.includes(String(idx)) // Hidden JIKA BELUM dijawab
+            // JIKA MODE KUIS TIDAK AKTIF (Mode Normal)
+            : !(showMeaning || clickedWordIndex === String(idx)) 
+    }" 
+    
+    aria-hidden="true"
+    
+    :style="{ fontSize: fontSizeMeaning + 'px' }" 
+>
+    {{ item.arti || '—' }}
+</small>
     </span>
   </template>
 </div>
@@ -568,65 +579,77 @@
 
       new Vue({
         el: '#app',
-        data() {
-          return {
-          // 1. Properti baru untuk kontrol Header
-      isHeaderVisible: true,
-      
-      // 2. Properti untuk kontrol transparansi tombol
-      isButtonTransparent: true, 
-      
-      // 3. Properti untuk melacak apakah tombol sedang ditekan
-      isButtonHeld: false, 
-      
-      // 4. ID timer untuk delay transparansi
-      transparencyTimer: null, 
-      
-      // ... properti data Anda yang sudah ada
-      // isQuizMode: false,
-      // showArabic: true,
-      // showMeaning: true,
-      // ...
- 
-            insertUrlBase: 'https://script.google.com/macros/s/AKfycby025S9w4zqYOhMzReoyu2EOauP-7uVJZCFbCiC_lrclg9WXNapzwxGwo7LLW7sV15G6A/exec',
-            showLoadPageModal: false, // State untuk modal Load Page
-            noHalaman: null, // Input nomor halaman
-            loading: false, // State loading saat fetch
-            answeredWordIndexes: [],
-            isQuizMode: true,
-            currentQuizIndex: 0,
-            quizChoices: [], // akan diisi saat klik kata
-            feedback: {},    // { idx: 'correct' | 'wrong' }
-            debugMode: true,
-            showApiKeyModal: false,
-            tempApiKey: '',
-            isApiKeySet: !!localStorage.getItem(API_KEY_STORAGE_KEY),
-            requireApiKeyForOCR: false, // jika true => user harus masukkan API key sebelum scan
-            loading: false,
-            loadingMessage: 'Memproses...',
-            showToast: false,
-            toastMessage: '',
-            toastType: 'green',
-            theme: localStorage.getItem('theme') || 'light',
-            dataAwal: [],
-            dataFetch: [],
-            fontSizeArabic: 24,
-            activeBubble: null,
-            clickedWordIndex: null,
-            myDictionary: JSON.parse(localStorage.getItem('myDictionary') || '[]'),
-            showDictionary: false,
-            dictionarySortDir: 'desc',
-            showArabic: true,
-            showMeaning: true,
-            ttsMode: 'arab-arti',
-            isSpeaking: false,
-            activeWordIndex: null,
-            aiClient: null,
-            feedback: {}, // menyimpan status jawaban tiap kata: { idx: 'correct'|'wrong' }
+       data() {
+    // Definisi global constant yang mungkin diperlukan (misal API_KEY_STORAGE_KEY)
+    // Jika API_KEY_STORAGE_KEY didefinisikan sebagai const di luar data, 
+    // pastikan ia bisa diakses di sini.
+    const API_KEY_STORAGE_KEY = 'geminiApiKey'; 
+   const DEFAULT_FONT_ARABIC = 24;
+    // ⬇️ Ubah dari 12 menjadi 10 (atau lebih kecil, misal 9)
+    const DEFAULT_FONT_MEANING = 10; 
 
-          };
-        },
-        computed: {
+    return {
+        // ...
+        fontSizeArabic: Number(localStorage.getItem('fontSizeArabic')) || DEFAULT_FONT_ARABIC,
+        fontSizeMeaning: Number(localStorage.getItem('fontSizeMeaning')) || DEFAULT_FONT_MEANING,
+        // ... Properti kontrol UI & Transparansi
+        isHeaderVisible: true,
+        isButtonTransparent: true, 
+        isButtonHeld: false, 
+        transparencyTimer: null, 
+        
+        // ... URL & State Umum
+        insertUrlBase: 'https://script.google.com/macros/s/AKfycby025S9w4zqYOhMzReoyu2EOauP-7uVJZCFbCiC_lrclg9WXNapzwxGwo7LLW7sV15G6A/exec',
+        showLoadPageModal: false,
+        noHalaman: null,
+        
+        // ... State Kuis & Data
+        answeredWordIndexes: [],
+        isQuizMode: true,
+        currentQuizIndex: 0,
+        quizChoices: [],
+        feedback: {}, // { idx: 'correct' | 'wrong' }
+        debugMode: true,
+        dataAwal: [],
+        dataFetch: [],
+        
+        // ... API & Loading
+        loading: false, // Digunakan 2 kali di kode Anda, ini yang utama
+        loadingMessage: 'Memproses...',
+        showApiKeyModal: false,
+        tempApiKey: '',
+        isApiKeySet: !!localStorage.getItem(API_KEY_STORAGE_KEY),
+        requireApiKeyForOCR: false,
+        aiClient: null,
+        
+        // ... Toast & UI
+        showToast: false,
+        toastMessage: '',
+        toastType: 'green',
+        theme: localStorage.getItem('theme') || 'light',
+        showDictionary: false,
+        dictionarySortDir: 'desc',
+        showArabic: true,
+        showMeaning: true,
+        
+        // ... TTS
+        ttsMode: 'arab-arti',
+        isSpeaking: false,
+        activeWordIndex: null,
+
+        // 🎯 PERBAIKAN UTAMA: INISIALISASI UKURAN FONT DARI localStorage
+        // Muat fontSizeArabic
+        fontSizeArabic: Number(localStorage.getItem('fontSizeArabic')) || DEFAULT_FONT_ARABIC,
+        // ✅ TAMBAHAN: Muat fontSizeMeaning
+        fontSizeMeaning: Number(localStorage.getItem('fontSizeMeaning')) || DEFAULT_FONT_MEANING, 
+
+        // ... Properti Interaksi Kata
+        activeBubble: null,
+        clickedWordIndex: null,
+        myDictionary: JSON.parse(localStorage.getItem('myDictionary') || '[]'),
+        // ... 
+    };
+}, computed: {
           sortedDictionary() { return this.myDictionary.slice().sort((a, b) => this.dictionarySortDir === 'desc' ? (b.timestamp || 0) - (a.timestamp || 0) : (a.timestamp || 0) - (b.timestamp || 0)); },
           toastTypeClass() { return this.toastType === 'green' ? 'toast green' : (this.toastType === 'red' ? 'toast red' : 'toast orange'); }
         },
@@ -1264,17 +1287,29 @@ Keluaran HARUS HANYA JSON array sesuai schema di atas. Jangan menambahkan teks l
             document.body.className = this.theme;
           },
 
-          changeFontSize(delta) {
-            // 1. Ubah nilai
-            this.fontSizeArabic = Math.max(14, this.fontSizeArabic + delta);
+changeFontSize(delta) {
+    const MIN_ARABIC_FONT = 14;
+    const MIN_MEANING_FONT = 8; // Batas minimum (tidak boleh kurang dari 8px)
+    
+    // 1. Ubah ukuran font ARAB
+    this.fontSizeArabic = Math.max(MIN_ARABIC_FONT, this.fontSizeArabic + delta);
 
-            // 2. 🚨 SIMPAN NILAI BARU KE LOCAL STORAGE
-            try {
-              localStorage.setItem('fontSizeArabic', String(this.fontSizeArabic));
-            } catch (e) {
-              console.warn('Gagal menyimpan ukuran font ke local storage:', e);
-            }
-          },
+    // 2. HITUNG UKURAN FONT ARTI KATA SECARA PROPORSI
+    // ⬇️ Ubah faktor proporsi dari 0.5 menjadi 0.4 (40%)
+    const PROPORTION_FACTOR = 0.4; 
+    let newMeaningSize = Math.floor(this.fontSizeArabic * PROPORTION_FACTOR);
+
+    // 3. Terapkan batasan minimal
+    this.fontSizeMeaning = Math.max(MIN_MEANING_FONT, newMeaningSize);
+
+    // 4. Simpan ke Local Storage
+    try {
+        localStorage.setItem('fontSizeArabic', String(this.fontSizeArabic));
+        localStorage.setItem('fontSizeMeaning', String(this.fontSizeMeaning));
+    } catch (e) {
+        console.warn('Gagal menyimpan ukuran font ke local storage:', e);
+    }
+},
 
           copyArabicText() {
             const txt = this.dataAwal.map(d => d.arab || d.noHarokat).join(' ');
