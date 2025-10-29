@@ -138,27 +138,29 @@
       color: #e6eef8;
     }
 
-.toast {
-  position: fixed; 
-  top: 16px; 
-  left: 50%; 
-  transform: translateX(-50%); 
-  
-  /* PENTING: Mengaktifkan display yang kompatibel dengan min-width */
-  display: flex; /* Flexbox lebih baik untuk layout internal */
-  align-items: center; 
-  gap: 8px; /* Jarak antara pesan dan tombol tutup */
+    .toast {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
 
-  /* MEMAKSA MINIMUM WIDTH */
-  min-width: 100px !important; 
-  
-  /* Pengaturan visual */
-  padding: 10px 14px;
-  border-radius: 10px;
-  color: #fff;
-  font-weight: 700;
-  z-index: 3000;
-}
+      /* PENTING: Mengaktifkan display yang kompatibel dengan min-width */
+      display: flex;
+      /* Flexbox lebih baik untuk layout internal */
+      align-items: center;
+      gap: 8px;
+      /* Jarak antara pesan dan tombol tutup */
+
+      /* MEMAKSA MINIMUM WIDTH */
+      min-width: 100px !important;
+
+      /* Pengaturan visual */
+      padding: 10px 14px;
+      border-radius: 10px;
+      color: #fff;
+      font-weight: 700;
+      z-index: 3000;
+    }
 
     .toast.green {
       background: #16a34a;
@@ -199,25 +201,25 @@
       transform: translateY(-2px);
     }
 
-.word-meaning {
-  display: block;
-  /* HAPUS: font-size: 0.68rem; */ 
-  line-height: 1.05;
-  margin-top: 0.28rem;
-  max-width: 12ch;
-  text-align: center;
-  direction: ltr;
-  font-family: system-ui, Arial, sans-serif;
-  color: #065f46;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 3px 6px;
-  border-radius: 6px;
-  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
-  word-break: break-word;
-  white-space: normal;
-  pointer-events: none;
-  margin-bottom: 25px;
-}
+    .word-meaning {
+      display: block;
+      /* HAPUS: font-size: 0.68rem; */
+      line-height: 1.05;
+      margin-top: 0.28rem;
+      max-width: 12ch;
+      text-align: center;
+      direction: ltr;
+      font-family: system-ui, Arial, sans-serif;
+      color: #065f46;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 3px 6px;
+      border-radius: 6px;
+      box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
+      word-break: break-word;
+      white-space: normal;
+      pointer-events: none;
+      margin-bottom: 25px;
+    }
 
     .word-meaning.hidden {
       display: none !important;
@@ -252,75 +254,66 @@
       <!-- <div v-if="debugMode" class="small mt-2 text-yellow-200">DEBUG: periksa console untuk log</div> -->
     </div>
 
-<template>
-  <button
-    @click="toggleHeader"
-    @mousedown="isButtonHeld = true"
-    @mouseup="isButtonHeld = false"
-    :class="{
+    <template>
+      <button @click="toggleHeader" @mousedown="isButtonHeld = true" @mouseup="isButtonHeld = false" :class="{
       'opacity-50': isButtonTransparent,
-    }"
-    
-    class="fixed z-[999] top-0 left-1/2 -translate-x-1/2 mt-2 w-16 h-16 rounded-full bg-white text-gray-700 shadow-xl flex items-center justify-center transition-opacity duration-300"
-    title="Sembunyikan/Tampilkan Header"
-  >
-    <span :class="{'rotate-180': !isHeaderVisible}" class="inline-block transition-transform duration-300">
-      
-    </span>
-  </button>
-  
-  <header
-    v-show="isHeaderVisible"
-    class="header-controls transition-all duration-300 transform"
-  >
-    <div class="flex items-center justify-between flex-wrap gap-y-2">
-      <div class="flex items-center gap-3">
-        <div class="flex items-center gap-2">
-          <button @click="onScanCamera"
-            :class="{'opacity-60 cursor-not-allowed': requireApiKeyForOCR && !isApiKeySet}"
-            class="px-3 py-1 rounded-lg bg-red-500 text-white flex items-center gap-2"
-            title="Ambil foto menggunakan kamera">
-            📸
-          </button>
+    }" class="fixed z-[999] top-0 left-1/2 -translate-x-1/2 mt-2 w-16 h-16 rounded-full bg-white text-gray-700 shadow-xl flex items-center justify-center transition-opacity duration-300"
+        title="Sembunyikan/Tampilkan Header">
+        <span :class="{'rotate-180': !isHeaderVisible}" class="inline-block transition-transform duration-300">
 
-          <button @click="onScanGallery" class="px-3 py-1 rounded-lg bg-amber-500 text-white flex items-center gap-2"
-            title="Pilih gambar dari galeri">
-            📁
-          </button>
+        </span>
+      </button>
 
-          <button @click="isQuizMode = !isQuizMode" class="px-3 py-1 rounded bg-indigo-600 text-white">
-            {{ isQuizMode ? 'Keluar Mode Kuis' : 'Mode Kuis' }}
-          </button>
+      <header v-show="isHeaderVisible" class="header-controls transition-all duration-300 transform">
+        <div class="flex items-center justify-between flex-wrap gap-y-2">
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
+              <button @click="onScanCamera"
+                :class="{'opacity-60 cursor-not-allowed': requireApiKeyForOCR && !isApiKeySet}"
+                class="px-3 py-1 rounded-lg bg-red-500 text-white flex items-center gap-2"
+                title="Ambil foto menggunakan kamera">
+                📸
+              </button>
+
+              <button @click="onScanGallery"
+                class="px-3 py-1 rounded-lg bg-amber-500 text-white flex items-center gap-2"
+                title="Pilih gambar dari galeri">
+                📁
+              </button>
+
+              <button @click="isQuizMode = !isQuizMode" class="px-3 py-1 rounded bg-indigo-600 text-white">
+                {{ isQuizMode ? 'Keluar Mode Kuis' : 'Mode Kuis' }}
+              </button>
+            </div>
+
+            <input id="ocr-upload-camera" type="file" accept="image/*" capture="environment" class="hidden"
+              @change="handleImageUpload">
+            <input id="ocr-upload-gallery" type="file" accept="image/*" class="hidden" @change="handleImageUpload">
+
+            <button @click="openApiKeyModal" class="p-1.5 rounded-full">🔑 API Key</button>
+            <button @click="showDictionary = true; closeBubble();" class="p-1.5 rounded-full bg-green-600 text-white">📚
+              Kamus </button>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <label class="flex items-center gap-2"><input type="checkbox" v-model="showArabic"> Harokat</label>
+
+            <label class="flex items-center gap-2"><input type="checkbox" v-model="showMeaning"> Arti</label>
+
+            <button @click="showLoadPageModal = true;"
+              class="px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition duration-150 shadow-md"
+              title="Muat Halaman">
+              load data
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button @click="changeFontSize(2)" class="px-2 py-1 rounded bg-gray-200">A+</button>
+            <button @click="changeFontSize(-2)" class="px-2 py-1 rounded bg-gray-200">A-</button>
+          </div>
         </div>
-
-        <input id="ocr-upload-camera" type="file" accept="image/*" capture="environment" class="hidden"
-          @change="handleImageUpload">
-        <input id="ocr-upload-gallery" type="file" accept="image/*" class="hidden" @change="handleImageUpload">
-
-        <button @click="openApiKeyModal" class="p-1.5 rounded-full">🔑 API Key</button>
-        <button @click="showDictionary = true; closeBubble();"
-          class="p-1.5 rounded-full bg-green-600 text-white">📚 Kamus </button>
-      </div>
-
-      <div class="flex items-center gap-3">
-        <label class="flex items-center gap-2"><input type="checkbox" v-model="showArabic"> Harokat</label>
-
-        <label class="flex items-center gap-2"><input type="checkbox" v-model="showMeaning"> Arti</label>
-
-        <button @click="showLoadPageModal = true;"
-          class="px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition duration-150 shadow-md"
-          title="Muat Halaman">
-          load data
-        </button>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <button @click="changeFontSize(2)" class="px-2 py-1 rounded bg-gray-200">A+</button>
-        <button @click="changeFontSize(-2)" class="px-2 py-1 rounded bg-gray-200">A-</button>
-      </div>
-    </div>
-  </header>
-</template>
+      </header>
+    </template>
 
     <!-- Bubble -->
     <div v-if="activeBubble" class="bubble-dialog-fixed" role="dialog" aria-live="polite">
@@ -354,16 +347,19 @@
 
         <div class="space-y-4 pt-2">
           <p v-if="loading" class="text-center text-yellow-600 font-semibold">⏳ Sedang memuat data...</p>
-
-          <label class="block text-sm font-medium text-gray-700">Nomor Halaman:</label>
+          <div>
+ <label class="block text-sm font-medium text-gray-700">Nomor Halaman:</label>
           <input type="text" v-model.number="noHalaman" placeholder="Masukkan Nomor Halaman (e.g., 50)"
             :disabled="loading" class="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-indigo-200">
 
           <div class="flex justify-end pt-2">
             <button @click="_doInsert" :disabled="!noHalaman || loading"
               class="px-4 py-2 font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition">
-              Muat Halaman {{ noHalaman || '...' }}
+              Muat Halaman 
+              <!-- {{ noHalaman || '...' }} -->
             </button>
+          </div>
+         
           </div>
         </div>
 
@@ -429,86 +425,80 @@
     <!-- Main -->
     <br>
     <!-- Teks Arab normal -->
-<div v-if="!isQuizMode" class="book">
-    <div class="flex justify-between items-center border-b pb-2 mb-4 mt-4">
+    <div v-if="!isQuizMode" class="book">
+      <div class="flex justify-between items-center border-b pb-2 mb-4 mt-4">
         <div class="text-lg font-semibold">Teks Arab Interaktif</div>
         <div><button @click="copyArabicText" :disabled="dataAwal.length===0"
             class="px-3 py-1 rounded bg-blue-600 text-white">📋 Salin Teks Arab</button></div>
-    </div>
+      </div>
 
-    <div v-if="dataAwal.length === 0" class="p-8 text-center text-gray-600 italic">Tekan <strong>Scan Gambar</strong>
+      <div v-if="dataAwal.length === 0" class="p-8 text-center text-gray-600 italic">Tekan <strong>Scan Gambar</strong>
         untuk mengunggah foto teks Arab atau muat hasil sebelumnya.</div>
 
-    <div v-else class="page-paragraph" :style="{ fontSize: fontSizeArabic + 'px' }" aria-live="polite">
+      <div v-else class="page-paragraph" :style="{ fontSize: fontSizeArabic + 'px' }" aria-live="polite">
         <template v-for="(item, idx) in dataAwal">
-            <span class="word-stack" :key="String(idx)" :data-key="String(idx)">
-                <span class="arab-word rtl-text" :class="{
+          <span class="word-stack" :key="String(idx)" :data-key="String(idx)">
+            <span class="arab-word rtl-text" :class="{
                 'is-reading': isSpeaking && activeWordIndex === String(idx),
                 'has-meaning': item.arti,
                 'bg-yellow-200 dark:bg-yellow-900/50': activeBubble && clickedWordIndex === String(idx),
                 'hover:bg-yellow-100 dark:hover:bg-yellow-900/30': true
-                }" :data-meaning="(item.arti) ? item.arti : ''" @click.stop="handleWordClick(item, String(idx), $event)"
-                    tabindex="0" role="button" :aria-label="`Kata Arab ${item.arab || item.noHarokat || idx}`">
-                    {{ showArabic ? (item.arab || item.noHarokat) : (item.noHarokat || item.arab) }}
-                </span>
-
-                <small class="word-meaning" 
-                    :class="{ hidden: !(showMeaning || clickedWordIndex === String(idx)) }"
-                    aria-hidden="true"
-                    
-                    :style="{ fontSize: fontSizeMeaning + 'px' }" 
-                    
-                >{{ item.arti || '—' }}</small>
+                }" :data-meaning="(item.arti) ? item.arti : ''"
+              @click.stop="handleWordClick(item, String(idx), $event)" tabindex="0" role="button"
+              :aria-label="`Kata Arab ${item.arab || item.noHarokat || idx}`">
+              {{ showArabic ? (item.arab || item.noHarokat) : (item.noHarokat || item.arab) }}
             </span>
+
+            <small class="word-meaning" :class="{ hidden: !(showMeaning || clickedWordIndex === String(idx)) }"
+              aria-hidden="true" :style="{ fontSize: fontSizeMeaning + 'px' }">{{ item.arti || '—' }}</small>
+          </span>
         </template>
+      </div>
     </div>
-</div>
 
 
-<div v-if="isQuizMode" class="book page-paragraph rtl-text text-right" :style="{ fontSize: fontSizeArabic + 'px' }">
-  <template v-for="(item, idx) in dataAwal">
+    <div v-if="isQuizMode" class="book page-paragraph rtl-text text-right" :style="{ fontSize: fontSizeArabic + 'px' }">
+      <template v-for="(item, idx) in dataAwal">
 
-    <span class="word-stack" :data-key="String(idx)" :key="idx">
+        <span class="word-stack" :data-key="String(idx)" :key="idx">
 
-      <span class="arab-word rtl-text cursor-pointer" :class="{ 
+          <span class="arab-word rtl-text cursor-pointer" :class="{ 
         // ... (kelas styling lainnya yang sudah ada) ...
 
         // Warna Latar Belakang Kata Arab Setelah Dijawab
         'bg-green-100 dark:bg-green-200': feedback[String(idx)] && feedback[String(idx)].status === 'correct' && isQuizMode, 
         'bg-pink-100 dark:bg-pink-200': feedback[String(idx)] && feedback[String(idx)].status === 'wrong' && isQuizMode,
         'border-2 border-transparent': isQuizMode,
-      }" 
-      
-      @click.stop="answeredWordIndexes.includes(String(idx)) 
+      }" @click.stop="answeredWordIndexes.includes(String(idx)) 
         ? handleWordClick(item, String(idx), $event) 
-        : startQuizForWord(String(idx), item)"
-      tabindex="0" role="button" :aria-label="`Kata Arab ${item.arab || item.noHarokat || idx}`">
+        : startQuizForWord(String(idx), item)" tabindex="0" role="button"
+            :aria-label="`Kata Arab ${item.arab || item.noHarokat || idx}`">
 
-        {{
-        isQuizMode
-        ?
-        (answeredWordIndexes.includes(String(idx))
-        ?
-        // 1. Jika Sudah Dijawab: Tampilkan Arab berharakat
-        (item.arab || item.noHarokat)
-        :
-        (activeWordIndex === String(idx) // 2. Jika SEDANG AKTIF kuis:
-        ?
-        // 🚨 TAMPILKAN STRING KOSONG AGAR HILANG
-        ''
-        // 3. Jika Belum Dijawab & TIDAK AKTIF: Tampilkan Teks gundul
-        :
-        item.noHarokat)
-        )
-        :
-        (showArabic || !isQuizMode ? (item.arab || item.noHarokat) : item.noHarokat)
-        }}
-      </span>
+            {{
+            isQuizMode
+            ?
+            (answeredWordIndexes.includes(String(idx))
+            ?
+            // 1. Jika Sudah Dijawab: Tampilkan Arab berharakat
+            (item.arab || item.noHarokat)
+            :
+            (activeWordIndex === String(idx) // 2. Jika SEDANG AKTIF kuis:
+            ?
+            // 🚨 TAMPILKAN STRING KOSONG AGAR HILANG
+            ''
+            // 3. Jika Belum Dijawab & TIDAK AKTIF: Tampilkan Teks gundul
+            :
+            item.noHarokat)
+            )
+            :
+            (showArabic || !isQuizMode ? (item.arab || item.noHarokat) : item.noHarokat)
+            }}
+          </span>
 
-      <div v-if="isQuizMode && activeWordIndex === String(idx) && quizChoices.length > 0"
-        class="mt-2 flex flex-col gap-2 w-full max-w-xs rtl-text">
-        <button v-for="(choice, cidx) in quizChoices" :key="cidx"
-          @click.stop="checkQuizAnswer(choice, String(idx), cidx, item)" :class="[
+          <div v-if="isQuizMode && activeWordIndex === String(idx) && quizChoices.length > 0"
+            class="mt-2 flex flex-col gap-2 w-full max-w-xs rtl-text">
+            <button v-for="(choice, cidx) in quizChoices" :key="cidx"
+              @click.stop="checkQuizAnswer(choice, String(idx), cidx, item)" :class="[
           // 🚨 'border' dan 'dark:border-gray-600' DIHAPUS agar tidak ada border default
           'p-2 rounded-lg transition text-center shadow', 
           {
@@ -523,35 +513,29 @@
           }
         ]">
 
-          {{ choice }}
+              {{ choice }}
 
-          <span v-if="quizFeedback[cidx] === 'wrong'"
-            class="ml-2 text-sm text-gray-700 font-bold dark:text-gray-200">
-            (Jawaban Benar: {{ item.arab }})
-          </span>
+              <span v-if="quizFeedback[cidx] === 'wrong'"
+                class="ml-2 text-sm text-gray-700 font-bold dark:text-gray-200">
+                (Jawaban Benar: {{ item.arab }})
+              </span>
 
-        </button>
-      </div>
+            </button>
+          </div>
 
-<small class="word-meaning" 
-    :class="{ 
+          <small class="word-meaning" :class="{ 
         hidden: isQuizMode // JIKA MODE KUIS AKTIF
             ? !answeredWordIndexes.includes(String(idx)) // Hidden JIKA BELUM dijawab
             // JIKA MODE KUIS TIDAK AKTIF (Mode Normal)
             : !(showMeaning || clickedWordIndex === String(idx)) 
-    }" 
-    
-    aria-hidden="true"
-    
-    :style="{ fontSize: fontSizeMeaning + 'px' }" 
->
-    {{ item.arti || '—' }}
-</small>
-    </span>
-  </template>
-</div>
+    }" aria-hidden="true" :style="{ fontSize: fontSizeMeaning + 'px' }">
+            {{ item.arti || '—' }}
+          </small>
+        </span>
+      </template>
+    </div>
 
-<br><br><br><br><br><br>
+    <br><br><br><br><br><br>
 
 
 
@@ -579,119 +563,119 @@
 
       new Vue({
         el: '#app',
-       data() {
-    // Definisi global constant yang mungkin diperlukan (misal API_KEY_STORAGE_KEY)
-    // Jika API_KEY_STORAGE_KEY didefinisikan sebagai const di luar data, 
-    // pastikan ia bisa diakses di sini.
-    const API_KEY_STORAGE_KEY = 'geminiApiKey'; 
-   const DEFAULT_FONT_ARABIC = 24;
-    // ⬇️ Ubah dari 12 menjadi 10 (atau lebih kecil, misal 9)
-    const DEFAULT_FONT_MEANING = 10; 
+        data() {
+          // Definisi global constant yang mungkin diperlukan (misal API_KEY_STORAGE_KEY)
+          // Jika API_KEY_STORAGE_KEY didefinisikan sebagai const di luar data, 
+          // pastikan ia bisa diakses di sini.
+          const API_KEY_STORAGE_KEY = 'geminiApiKey';
+          const DEFAULT_FONT_ARABIC = 24;
+          // ⬇️ Ubah dari 12 menjadi 10 (atau lebih kecil, misal 9)
+          const DEFAULT_FONT_MEANING = 10;
 
-    return {
-        // ...
-        fontSizeArabic: Number(localStorage.getItem('fontSizeArabic')) || DEFAULT_FONT_ARABIC,
-        fontSizeMeaning: Number(localStorage.getItem('fontSizeMeaning')) || DEFAULT_FONT_MEANING,
-        // ... Properti kontrol UI & Transparansi
-        isHeaderVisible: true,
-        isButtonTransparent: true, 
-        isButtonHeld: false, 
-        transparencyTimer: null, 
-        
-        // ... URL & State Umum
-        insertUrlBase: 'https://script.google.com/macros/s/AKfycby025S9w4zqYOhMzReoyu2EOauP-7uVJZCFbCiC_lrclg9WXNapzwxGwo7LLW7sV15G6A/exec',
-        showLoadPageModal: false,
-        noHalaman: null,
-        
-        // ... State Kuis & Data
-        answeredWordIndexes: [],
-        isQuizMode: true,
-        currentQuizIndex: 0,
-        quizChoices: [],
-        feedback: {}, // { idx: 'correct' | 'wrong' }
-        debugMode: true,
-        dataAwal: [],
-        dataFetch: [],
-        
-        // ... API & Loading
-        loading: false, // Digunakan 2 kali di kode Anda, ini yang utama
-        loadingMessage: 'Memproses...',
-        showApiKeyModal: false,
-        tempApiKey: '',
-        isApiKeySet: !!localStorage.getItem(API_KEY_STORAGE_KEY),
-        requireApiKeyForOCR: false,
-        aiClient: null,
-        
-        // ... Toast & UI
-        showToast: false,
-        toastMessage: '',
-        toastType: 'green',
-        theme: localStorage.getItem('theme') || 'light',
-        showDictionary: false,
-        dictionarySortDir: 'desc',
-        showArabic: true,
-        showMeaning: true,
-        
-        // ... TTS
-        ttsMode: 'arab-arti',
-        isSpeaking: false,
-        activeWordIndex: null,
+          return {
+            // ...
+            fontSizeArabic: Number(localStorage.getItem('fontSizeArabic')) || DEFAULT_FONT_ARABIC,
+            fontSizeMeaning: Number(localStorage.getItem('fontSizeMeaning')) || DEFAULT_FONT_MEANING,
+            // ... Properti kontrol UI & Transparansi
+            isHeaderVisible: true,
+            isButtonTransparent: true,
+            isButtonHeld: false,
+            transparencyTimer: null,
 
-        // 🎯 PERBAIKAN UTAMA: INISIALISASI UKURAN FONT DARI localStorage
-        // Muat fontSizeArabic
-        fontSizeArabic: Number(localStorage.getItem('fontSizeArabic')) || DEFAULT_FONT_ARABIC,
-        // ✅ TAMBAHAN: Muat fontSizeMeaning
-        fontSizeMeaning: Number(localStorage.getItem('fontSizeMeaning')) || DEFAULT_FONT_MEANING, 
+            // ... URL & State Umum
+            insertUrlBase: 'https://script.google.com/macros/s/AKfycby025S9w4zqYOhMzReoyu2EOauP-7uVJZCFbCiC_lrclg9WXNapzwxGwo7LLW7sV15G6A/exec',
+            showLoadPageModal: false,
+            noHalaman: null,
 
-        // ... Properti Interaksi Kata
-        activeBubble: null,
-        clickedWordIndex: null,
-        myDictionary: JSON.parse(localStorage.getItem('myDictionary') || '[]'),
-        // ... 
-    };
-}, computed: {
+            // ... State Kuis & Data
+            answeredWordIndexes: [],
+            isQuizMode: true,
+            currentQuizIndex: 0,
+            quizChoices: [],
+            feedback: {}, // { idx: 'correct' | 'wrong' }
+            debugMode: true,
+            dataAwal: [],
+            dataFetch: [],
+
+            // ... API & Loading
+            loading: false, // Digunakan 2 kali di kode Anda, ini yang utama
+            loadingMessage: 'Memproses...',
+            showApiKeyModal: false,
+            tempApiKey: '',
+            isApiKeySet: !!localStorage.getItem(API_KEY_STORAGE_KEY),
+            requireApiKeyForOCR: false,
+            aiClient: null,
+
+            // ... Toast & UI
+            showToast: false,
+            toastMessage: '',
+            toastType: 'green',
+            theme: localStorage.getItem('theme') || 'light',
+            showDictionary: false,
+            dictionarySortDir: 'desc',
+            showArabic: true,
+            showMeaning: true,
+
+            // ... TTS
+            ttsMode: 'arab-arti',
+            isSpeaking: false,
+            activeWordIndex: null,
+
+            // 🎯 PERBAIKAN UTAMA: INISIALISASI UKURAN FONT DARI localStorage
+            // Muat fontSizeArabic
+            fontSizeArabic: Number(localStorage.getItem('fontSizeArabic')) || DEFAULT_FONT_ARABIC,
+            // ✅ TAMBAHAN: Muat fontSizeMeaning
+            fontSizeMeaning: Number(localStorage.getItem('fontSizeMeaning')) || DEFAULT_FONT_MEANING,
+
+            // ... Properti Interaksi Kata
+            activeBubble: null,
+            clickedWordIndex: null,
+            myDictionary: JSON.parse(localStorage.getItem('myDictionary') || '[]'),
+            // ... 
+          };
+        }, computed: {
           sortedDictionary() { return this.myDictionary.slice().sort((a, b) => this.dictionarySortDir === 'desc' ? (b.timestamp || 0) - (a.timestamp || 0) : (a.timestamp || 0) - (b.timestamp || 0)); },
           toastTypeClass() { return this.toastType === 'green' ? 'toast green' : (this.toastType === 'red' ? 'toast red' : 'toast orange'); }
         },
         watch: {
-    // Watcher untuk mengontrol transparansi tombol
-    isButtonHeld(newValue) {
-      // Jika tombol dilepas (false)
-      if (!newValue) {
-        // Atur timer 2 detik
-        this.transparencyTimer = setTimeout(() => {
-          this.isButtonTransparent = true;
-        }, 2000);
-      } else {
-        // Jika tombol ditekan (true), bersihkan timer dan atur kembali opacity penuh
-        clearTimeout(this.transparencyTimer);
-        this.isButtonTransparent = false;
-      }
-    }
-  },
-        methods: {
-        // Metode untuk melakukan toggle visibilitas header
-    toggleHeader() {
-      this.isHeaderVisible = !this.isHeaderVisible;
-      
-      // Pastikan transparansi direset saat tombol ditekan
-      clearTimeout(this.transparencyTimer);
-      this.isButtonTransparent = false;
-      
-      // Setelah toggle, kita atur ulang timer agar menjadi transparan lagi
-      // jika tombol tidak diinteraksi lagi
-      this.transparencyTimer = setTimeout(() => {
-          if (!this.isButtonHeld) {
-              this.isButtonTransparent = true;
+          // Watcher untuk mengontrol transparansi tombol
+          isButtonHeld(newValue) {
+            // Jika tombol dilepas (false)
+            if (!newValue) {
+              // Atur timer 2 detik
+              this.transparencyTimer = setTimeout(() => {
+                this.isButtonTransparent = true;
+              }, 2000);
+            } else {
+              // Jika tombol ditekan (true), bersihkan timer dan atur kembali opacity penuh
+              clearTimeout(this.transparencyTimer);
+              this.isButtonTransparent = false;
+            }
           }
-      }, 1000);
-    },
-    
-    // ... metode Anda yang sudah ada
-    // onScanCamera() { /* ... */ },
-    // onScanGallery() { /* ... */ },
-    // openApiKeyModal() { /* ... */ },
-    // ...
+        },
+        methods: {
+          // Metode untuk melakukan toggle visibilitas header
+          toggleHeader() {
+            this.isHeaderVisible = !this.isHeaderVisible;
+
+            // Pastikan transparansi direset saat tombol ditekan
+            clearTimeout(this.transparencyTimer);
+            this.isButtonTransparent = false;
+
+            // Setelah toggle, kita atur ulang timer agar menjadi transparan lagi
+            // jika tombol tidak diinteraksi lagi
+            this.transparencyTimer = setTimeout(() => {
+              if (!this.isButtonHeld) {
+                this.isButtonTransparent = true;
+              }
+            }, 1000);
+          },
+
+          // ... metode Anda yang sudah ada
+          // onScanCamera() { /* ... */ },
+          // onScanGallery() { /* ... */ },
+          // openApiKeyModal() { /* ... */ },
+          // ...
 
           // ... di dalam methods: { ...
 
@@ -712,6 +696,7 @@
           // ... di dalam methods: { ...
 
           async _doInsert() {
+            this.loading = true;
             const now = this._now();
             const payloadObject = {
               no: now.ts,
@@ -762,7 +747,7 @@
               console.error("ERROR: insertUrlBase tidak terdefinisi.");
               return;
             }
-
+            
             const url = `${this.insertUrlBase}?action=read&table=bacakitab`;
             this.dataFetch = []; // Kosongkan data sebelumnya
 
@@ -801,10 +786,13 @@
 
               if (dataLoaded) {
                 console.log(`✅ Berhasil memuat ${this.dataFetch.length} item ke dataFetch.`);
-
+this.loading = false;
                 // ✅ PERBAIKAN UTAMA: Salin hasil yang baru dimuat
                 this.dataAwal = this.dataFetch;
-                this.showLoadPageModal=false;
+                this.showLoadPageModal = false;
+                this.feedback = {}; // Hapus semua status warna (hijau/pink)
+            this.answeredWordIndexes = []; // Hapus penanda kata yang sudah dijawab
+            this.quizChoices = []; // Hapus opsi kuis yang mungkin tersisa
                 console.log('Data dataAwal telah diperbarui dari dataFetch.');
               }
 
@@ -1287,29 +1275,29 @@ Keluaran HARUS HANYA JSON array sesuai schema di atas. Jangan menambahkan teks l
             document.body.className = this.theme;
           },
 
-changeFontSize(delta) {
-    const MIN_ARABIC_FONT = 14;
-    const MIN_MEANING_FONT = 8; // Batas minimum (tidak boleh kurang dari 8px)
-    
-    // 1. Ubah ukuran font ARAB
-    this.fontSizeArabic = Math.max(MIN_ARABIC_FONT, this.fontSizeArabic + delta);
+          changeFontSize(delta) {
+            const MIN_ARABIC_FONT = 14;
+            const MIN_MEANING_FONT = 8; // Batas minimum (tidak boleh kurang dari 8px)
 
-    // 2. HITUNG UKURAN FONT ARTI KATA SECARA PROPORSI
-    // ⬇️ Ubah faktor proporsi dari 0.5 menjadi 0.4 (40%)
-    const PROPORTION_FACTOR = 0.4; 
-    let newMeaningSize = Math.floor(this.fontSizeArabic * PROPORTION_FACTOR);
+            // 1. Ubah ukuran font ARAB
+            this.fontSizeArabic = Math.max(MIN_ARABIC_FONT, this.fontSizeArabic + delta);
 
-    // 3. Terapkan batasan minimal
-    this.fontSizeMeaning = Math.max(MIN_MEANING_FONT, newMeaningSize);
+            // 2. HITUNG UKURAN FONT ARTI KATA SECARA PROPORSI
+            // ⬇️ Ubah faktor proporsi dari 0.5 menjadi 0.4 (40%)
+            const PROPORTION_FACTOR = 0.4;
+            let newMeaningSize = Math.floor(this.fontSizeArabic * PROPORTION_FACTOR);
 
-    // 4. Simpan ke Local Storage
-    try {
-        localStorage.setItem('fontSizeArabic', String(this.fontSizeArabic));
-        localStorage.setItem('fontSizeMeaning', String(this.fontSizeMeaning));
-    } catch (e) {
-        console.warn('Gagal menyimpan ukuran font ke local storage:', e);
-    }
-},
+            // 3. Terapkan batasan minimal
+            this.fontSizeMeaning = Math.max(MIN_MEANING_FONT, newMeaningSize);
+
+            // 4. Simpan ke Local Storage
+            try {
+              localStorage.setItem('fontSizeArabic', String(this.fontSizeArabic));
+              localStorage.setItem('fontSizeMeaning', String(this.fontSizeMeaning));
+            } catch (e) {
+              console.warn('Gagal menyimpan ukuran font ke local storage:', e);
+            }
+          },
 
           copyArabicText() {
             const txt = this.dataAwal.map(d => d.arab || d.noHarokat).join(' ');
@@ -1356,11 +1344,11 @@ changeFontSize(delta) {
             this.initGeminiClient();
           }
         },
-        
+
         // Lifecycle hook untuk membersihkan timer saat komponen dihancurkan
-  beforeUnmount() {
-      clearTimeout(this.transparencyTimer);
-  },
+        beforeUnmount() {
+          clearTimeout(this.transparencyTimer);
+        },
         created() {
           // Muat tema
           const savedTheme = localStorage.getItem('theme');
