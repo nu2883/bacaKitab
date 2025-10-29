@@ -44,8 +44,8 @@
     }
 
     .book {
-      margin-top: 140px;
-      max-width: 1100px;
+      margin-top: 80px;
+      max-width: 1400px;
       margin-left: auto;
       margin-right: auto;
       padding: 22px;
@@ -337,7 +337,8 @@
       <div class="bg-white w-[92%] max-w-sm p-4 rounded-lg max-h-[70vh] overflow-auto">
         <div class="flex justify-between items-center mb-3">
 
-          <h3 class="text-lg font-bold">Muat Halaman Kitab</h3>
+          <h3 class="text-lg font-bold">Kitab Tafsir As Sadi</h3>
+
 
           <button @click="showLoadPageModal=false"
             class="px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600 transition">
@@ -345,21 +346,22 @@
           </button>
         </div>
 
-        <div class="space-y-4 pt-2">
-          <p v-if="loading" class="text-center text-yellow-600 font-semibold">⏳ Sedang memuat data...</p>
-          <div>
- <label class="block text-sm font-medium text-gray-700">Nomor Halaman:</label>
-          <input type="text" v-model.number="noHalaman" placeholder="Masukkan Nomor Halaman (e.g., 50)"
-            :disabled="loading" class="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-indigo-200">
 
-          <div class="flex justify-end pt-2">
-            <button @click="_doInsert" :disabled="!noHalaman || loading"
-              class="px-4 py-2 font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition">
-              Muat Halaman 
-              <!-- {{ noHalaman || '...' }} -->
-            </button>
-          </div>
-         
+        <div class="space-y-4 pt-2">
+          <p v-if="loading" class="text-center text-yellow-600 font-semibold">⏳ Sedang request data...</p>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Nomor Halaman:</label>
+            <input type="text" v-model.number="noHalaman" placeholder="mulai halaman 39" :disabled="loading"
+              class="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-indigo-200">
+
+            <div class="flex justify-end pt-2">
+              <button @click="_doInsert" :disabled="!noHalaman || loading"
+                class="px-4 py-2 font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition">
+                Muat Halaman
+                <!-- {{ noHalaman || '...' }} -->
+              </button>
+            </div>
+
           </div>
         </div>
 
@@ -457,83 +459,82 @@
     </div>
 
 
-    <div v-if="isQuizMode" class="book page-paragraph rtl-text text-right" :style="{ fontSize: fontSizeArabic + 'px' }">
-      <template v-for="(item, idx) in dataAwal">
+<div v-if="isQuizMode" class="book page-paragraph rtl-text text-right" :style="{ fontSize: fontSizeArabic + 'px' }">
+    <template v-for="(item, idx) in dataAwal">
 
         <span class="word-stack" :data-key="String(idx)" :key="idx">
 
-          <span class="arab-word rtl-text cursor-pointer" :class="{ 
-        // ... (kelas styling lainnya yang sudah ada) ...
+            <span class="arab-word rtl-text cursor-pointer" :class="{ 
+            // ... (kelas styling arab-word lainnya) ...
 
-        // Warna Latar Belakang Kata Arab Setelah Dijawab
-        'bg-green-100 dark:bg-green-200': feedback[String(idx)] && feedback[String(idx)].status === 'correct' && isQuizMode, 
-        'bg-pink-100 dark:bg-pink-200': feedback[String(idx)] && feedback[String(idx)].status === 'wrong' && isQuizMode,
-        'border-2 border-transparent': isQuizMode,
-      }" @click.stop="answeredWordIndexes.includes(String(idx)) 
-        ? handleWordClick(item, String(idx), $event) 
-        : startQuizForWord(String(idx), item)" tabindex="0" role="button"
+            // Warna Latar Belakang Kata Arab Setelah Dijawab
+            'bg-green-100 dark:bg-green-200': feedback[String(idx)] && feedback[String(idx)].status === 'correct' && isQuizMode, 
+            'bg-pink-100 dark:bg-pink-200': feedback[String(idx)] && feedback[String(idx)].status === 'wrong' && isQuizMode,
+            'border-2 border-transparent': isQuizMode,
+            }" @click.stop="answeredWordIndexes.includes(String(idx)) 
+            ? handleWordClick(item, String(idx), $event) 
+            : startQuizForWord(String(idx), item)" tabindex="0" role="button"
             :aria-label="`Kata Arab ${item.arab || item.noHarokat || idx}`">
 
-            {{
-            isQuizMode
-            ?
-            (answeredWordIndexes.includes(String(idx))
-            ?
-            // 1. Jika Sudah Dijawab: Tampilkan Arab berharakat
-            (item.arab || item.noHarokat)
-            :
-            (activeWordIndex === String(idx) // 2. Jika SEDANG AKTIF kuis:
-            ?
-            // 🚨 TAMPILKAN STRING KOSONG AGAR HILANG
-            ''
-            // 3. Jika Belum Dijawab & TIDAK AKTIF: Tampilkan Teks gundul
-            :
-            item.noHarokat)
-            )
-            :
-            (showArabic || !isQuizMode ? (item.arab || item.noHarokat) : item.noHarokat)
-            }}
-          </span>
+                {{
+                isQuizMode
+                ?
+                (answeredWordIndexes.includes(String(idx))
+                ?
+                // 1. Jika Sudah Dijawab: Tampilkan Arab berharakat
+                (item.arab || item.noHarokat)
+                :
+                (activeWordIndex === String(idx) // 2. Jika SEDANG AKTIF kuis:
+                ?
+                // 🚨 TAMPILKAN STRING KOSONG AGAR HILANG
+                ''
+                // 3. Jika Belum Dijawab & TIDAK AKTIF: Tampilkan Teks gundul
+                :
+                item.noHarokat)
+                )
+                :
+                (showArabic || !isQuizMode ? (item.arab || item.noHarokat) : item.noHarokat)
+                }}
+            </span>
 
-          <div v-if="isQuizMode && activeWordIndex === String(idx) && quizChoices.length > 0"
-            class="mt-2 flex flex-col gap-2 w-full max-w-xs rtl-text">
-            <button v-for="(choice, cidx) in quizChoices" :key="cidx"
-              @click.stop="checkQuizAnswer(choice, String(idx), cidx, item)" :class="[
-          // 🚨 'border' dan 'dark:border-gray-600' DIHAPUS agar tidak ada border default
-          'p-2 rounded-lg transition text-center shadow', 
-          {
-            // Warna saat BELUM diklik atau default (Selalu putih/terang)
-            'bg-white hover:bg-indigo-100': quizFeedback[cidx] === null || quizFeedback[cidx] === undefined, 
-            
-            // Jawaban Salah: Pink Muda (border dipertahankan untuk feedback)
-            'bg-pink-200 border border-pink-200 dark:bg-pink-900 dark:border-pink-200': quizFeedback[cidx] === 'wrong',
-            
-            // Jawaban Benar: Hijau (border dipertahankan untuk feedback)
-            'bg-green-200 border border-green-200 dark:bg-green-900 dark:border-green-200': quizFeedback[cidx] === 'correct'
-          }
-        ]">
+            <div v-if="isQuizMode && activeWordIndex === String(idx) && quizChoices.length > 0"
+                class="mt-2 flex flex-col gap-2 w-full max-w-xs rtl-text">
+                <button v-for="(choice, cidx) in quizChoices" :key="cidx"
+                @click.stop="checkQuizAnswer(choice, String(idx), cidx, item)" :class="[
+                'p-1 rounded-lg transition text-center shadow leading-relaxed', // ✅ PENAMBAHAN DI SINI
+                {
+                    // Warna saat BELUM diklik
+                    'bg-white hover:bg-indigo-100': quizFeedback[cidx] === null || quizFeedback[cidx] === undefined, 
+                    
+                    // Jawaban Salah
+                    'bg-pink-200 border border-pink-200 dark:bg-pink-900 dark:border-pink-200': quizFeedback[cidx] === 'wrong',
+                    
+                    // Jawaban Benar
+                    'bg-green-200 border border-green-200 dark:bg-green-900 dark:border-green-200': quizFeedback[cidx] === 'correct'
+                }
+                ]">
 
-              {{ choice }}
+                    {{ choice }}
 
-              <span v-if="quizFeedback[cidx] === 'wrong'"
-                class="ml-2 text-sm text-gray-700 font-bold dark:text-gray-200">
-                (Jawaban Benar: {{ item.arab }})
-              </span>
+                    <span v-if="quizFeedback[cidx] === 'wrong'"
+                        class="ml-2 text-sm text-gray-700 font-bold dark:text-gray-200">
+                        (Jawaban Benar: {{ item.arab }})
+                    </span>
 
-            </button>
-          </div>
+                </button>
+            </div>
 
-          <small class="word-meaning" :class="{ 
-        hidden: isQuizMode // JIKA MODE KUIS AKTIF
-            ? !answeredWordIndexes.includes(String(idx)) // Hidden JIKA BELUM dijawab
-            // JIKA MODE KUIS TIDAK AKTIF (Mode Normal)
-            : !(showMeaning || clickedWordIndex === String(idx)) 
-    }" aria-hidden="true" :style="{ fontSize: fontSizeMeaning + 'px' }">
-            {{ item.arti || '—' }}
-          </small>
+            <small class="word-meaning" :class="{ 
+            hidden: isQuizMode // JIKA MODE KUIS AKTIF
+                ? !answeredWordIndexes.includes(String(idx)) // Hidden JIKA BELUM dijawab
+                // JIKA MODE KUIS TIDAK AKTIF (Mode Normal)
+                : !(showMeaning || clickedWordIndex === String(idx)) 
+            }" aria-hidden="true" :style="{ fontSize: fontSizeMeaning + 'px' }">
+                {{ item.arti || '—' }}
+            </small>
         </span>
-      </template>
-    </div>
+    </template>
+</div>
 
     <br><br><br><br><br><br>
 
@@ -747,7 +748,7 @@
               console.error("ERROR: insertUrlBase tidak terdefinisi.");
               return;
             }
-            
+            this.showLoadPageModal = false
             const url = `${this.insertUrlBase}?action=read&table=bacakitab`;
             this.dataFetch = []; // Kosongkan data sebelumnya
 
@@ -786,13 +787,13 @@
 
               if (dataLoaded) {
                 console.log(`✅ Berhasil memuat ${this.dataFetch.length} item ke dataFetch.`);
-this.loading = false;
+                this.loading = false;
                 // ✅ PERBAIKAN UTAMA: Salin hasil yang baru dimuat
                 this.dataAwal = this.dataFetch;
                 this.showLoadPageModal = false;
                 this.feedback = {}; // Hapus semua status warna (hijau/pink)
-            this.answeredWordIndexes = []; // Hapus penanda kata yang sudah dijawab
-            this.quizChoices = []; // Hapus opsi kuis yang mungkin tersisa
+                this.answeredWordIndexes = []; // Hapus penanda kata yang sudah dijawab
+                this.quizChoices = []; // Hapus opsi kuis yang mungkin tersisa
                 console.log('Data dataAwal telah diperbarui dari dataFetch.');
               }
 
