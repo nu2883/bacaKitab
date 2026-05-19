@@ -268,6 +268,48 @@
     </div>
   </div>
 
+  <!-- ===================== MODAL REVIEW KUIS ===================== -->
+  <!-- Muncul saat klik kata yang sudah dijawab di mode kuis -->
+  <div v-if="showQuizReview" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+    @click.self="showQuizReview=false">
+    <div class="bg-white w-[92%] max-w-sm rounded-2xl shadow-2xl overflow-hidden">
+      <!-- Header warna sesuai hasil jawaban -->
+      <div :class="quizReviewItem && feedback[quizReviewIdx] && feedback[quizReviewIdx].status === 'correct'
+          ? 'bg-green-500' : 'bg-red-400'"
+        class="px-5 py-3 flex items-center justify-between">
+        <span class="text-white font-bold text-sm">
+          {{ quizReviewItem && feedback[quizReviewIdx] && feedback[quizReviewIdx].status === 'correct' ? '✅ Benar' : '❌ Salah' }}
+        </span>
+        <button @click="showQuizReview=false" class="text-white text-xl leading-none">&times;</button>
+      </div>
+      <!-- Isi -->
+      <div class="px-5 py-4" v-if="quizReviewItem">
+        <!-- Arab dengan harokat -->
+        <div style="font-family:'Amiri',serif;direction:rtl;text-align:right"
+          :style="{ fontSize: (fontSizeArabic + 8) + 'px' }">
+          {{ quizReviewItem.arab || quizReviewItem.noHarokat }}
+        </div>
+        <!-- Latin -->
+        <div v-if="quizReviewItem.latin" class="text-sm text-gray-500 mt-1 text-right">
+          {{ quizReviewItem.latin }}
+        </div>
+        <hr class="my-3">
+        <div class="space-y-2 text-sm">
+          <div><span class="text-gray-500">Arti</span><br>
+            <span class="font-medium">{{ quizReviewItem.arti || '—' }}</span></div>
+          <div><span class="text-gray-500">Kedudukan Nahwu</span><br>
+            <span class="font-medium">{{ quizReviewItem.kedudukan || '—' }}</span></div>
+        </div>
+        <div class="mt-4 flex gap-2">
+          <button @click="addToMyDictionary(quizReviewItem); showQuizReview=false;"
+            class="flex-1 py-2 rounded-lg bg-green-600 text-white text-sm">Simpan ke Kamus</button>
+          <button @click="showQuizReview=false"
+            class="flex-1 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ===================== MAIN: MODE NORMAL ===================== -->
   <br>
   <div v-if="!isQuizMode" class="book">
@@ -309,7 +351,7 @@
             'border-2 border-transparent': true
           }"
           @click.stop="answeredWordIndexes.includes(String(idx))
-            ? handleWordClick(item, String(idx), $event)
+            ? openQuizReview(item, String(idx))
             : startQuizForWord(String(idx), item)"
           tabindex="0" role="button">
           {{
@@ -437,6 +479,11 @@
         activeBubble:    null,
         clickedWordIndex: null,
         myDictionary: JSON.parse(localStorage.getItem('myDictionary') || '[]'),
+
+        // modal review kuis
+        showQuizReview: false,
+        quizReviewItem: null,
+        quizReviewIdx:  null,
       };
     },
 
@@ -592,15 +639,17 @@
         this._quizTimer = setTimeout(() => { this.quizChoices = []; this.quizFeedback = {}; }, 55000);
       },
 
-      /* ---- Word click — SATU definisi, logika kuis + normal ---- */
+      /* ---- Modal review kuis (kata sudah dijawab) ---- */
+      openQuizReview(item, idx) {
+        this.quizReviewItem = item;
+        this.quizReviewIdx  = String(idx);
+        this.showQuizReview = true;
+      },
+
+      /* ---- Word click — mode normal saja (kuis punya handler sendiri) ---- */
       handleWordClick(item, idx, event) {
-        const indexKey = String(idx);
-        if (this.isQuizMode) {
-          this.startQuizForWord(indexKey, item);
-        } else {
-          this.clickedWordIndex = indexKey;
-          this.activeBubble     = { item };
-        }
+        this.clickedWordIndex = String(idx);
+        this.activeBubble     = { item };
         try { if (event && event.currentTarget) event.currentTarget.focus(); } catch(e) {}
       },
 
@@ -626,9 +675,9 @@
 
       _speakNext() {
         if (!this.isSpeaking || this._readCurrent >= this._readData.length) {
-          this.isSpeaking          = false;
-          this.activeWordIndex     = null;
-          this.currentReadingItem  = null;
+          this.isSpeaking         = false;
+          this.activeWordIndex    = null;
+          this.currentReadingItem = null;
           return;
         }
 
@@ -636,7 +685,6 @@
         this.activeWordIndex    = String(this._readCurrent);
         this.currentReadingItem = item;
 
-        // Scroll ke kata aktif
         this.$nextTick(() => {
           const el = document.querySelector(`[data-key="${this._readCurrent}"]`);
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -644,20 +692,13 @@
 
         const mode  = this.readMode;
         const speed = this.readingSpeed;
-        const voices = window.speechSynthesis.getVoices();
-        const arVoice = voices.find(v => v.lang && v.lang.startsWith('ar')) || null;
-        const idVoice = voices.find(v => v.lang && v.lang.startsWith('id')) || null;
 
-        const speak = (text, lang, voice, onEnd) => {
-          if (!text || !this.isSpeaking) { onEnd(); return; }
-          const u   = new SpeechSynthesisUtterance(text);
-          u.lang    = lang;
-          u.rate    = speed;
-          if (voice) u.voice = voice;
-          u.onend   = onEnd;
-          u.onerror = onEnd;
-          window.speechSynthesis.speak(u);
-        };
+        // Ambil voices setiap kali — Android sering belum siap di mount
+        const voices  = window.speechSynthesis.getVoices();
+        // Cari suara Indonesia dulu, fallback ke suara apa saja
+        const idVoice = voices.find(v => v.lang === 'id-ID')
+                     || voices.find(v => v.lang && v.lang.startsWith('id'))
+                     || voices[0] || null;
 
         const arabText  = item.arab  || item.noHarokat || '';
         const artiText  = item.arti  || '';
@@ -665,37 +706,44 @@
 
         const next = () => {
           this._readCurrent++;
-          // jeda singkat antar kata
-          setTimeout(() => { if (this.isSpeaking) this._speakNext(); }, 400);
+          // Jeda 300ms antar kata pakai utterance kosong (lebih stabil di Android)
+          if (this.isSpeaking) setTimeout(() => this._speakNext(), 300);
         };
 
+        // Helper speak — SEMUA pakai id-ID agar Android tidak berganti engine
+        // Arab dibaca dengan logat Indonesia (tidak ada engine Arab di kebanyakan Android)
+        const speak = (text, onEnd) => {
+          if (!text || !this.isSpeaking) { onEnd(); return; }
+          const u  = new SpeechSynthesisUtterance(text);
+          u.lang   = 'id-ID';
+          u.rate   = speed;
+          u.pitch  = 1;
+          if (idVoice) u.voice = idVoice;
+          u.onend  = onEnd;
+          u.onerror = (e) => { console.warn('TTS error', e); onEnd(); };
+          window.speechSynthesis.speak(u);
+        };
+
+        // Jalankan sesuai mode — chain langsung tanpa setTimeout berlapis
         if (mode === 'arab') {
-          speak(arabText, 'ar-SA', arVoice, next);
+          speak(arabText, next);
 
         } else if (mode === 'arti') {
-          speak(artiText, 'id-ID', idVoice, next);
+          speak(artiText || '—', next);
 
         } else if (mode === 'arab-arti') {
-          // Arab dulu, lalu arti (tanpa kata "artinya")
-          speak(arabText, 'ar-SA', arVoice, () => {
-            setTimeout(() => { speak(artiText, 'id-ID', idVoice, next); }, 300);
-          });
+          speak(arabText, () => speak(artiText || '—', next));
 
         } else if (mode === 'latin-arti') {
-          // Latin dulu, lalu arti langsung — tanpa kata "artinya"
-          speak(latinText || arabText, 'id-ID', idVoice, () => {
-            setTimeout(() => { speak(artiText, 'id-ID', idVoice, next); }, 300);
-          });
+          // Latin → arti, semua bahasa Indonesia
+          speak(latinText || arabText, () => speak(artiText || '—', next));
 
         } else if (mode === 'arab-latin-arti') {
-          // Arab → latin → arti, semua tanpa kata "artinya"
-          speak(arabText, 'ar-SA', arVoice, () => {
-            setTimeout(() => {
-              speak(latinText || arabText, 'id-ID', idVoice, () => {
-                setTimeout(() => { speak(artiText, 'id-ID', idVoice, next); }, 200);
-              });
-            }, 300);
-          });
+          speak(arabText, () =>
+            speak(latinText || arabText, () =>
+              speak(artiText || '—', next)
+            )
+          );
 
         } else {
           next();
@@ -894,8 +942,11 @@
       } catch(e) {}
       if (this.isApiKeySet) this.initGeminiClient();
 
-      // pastikan voices sudah ready
-      if (window.speechSynthesis) window.speechSynthesis.getVoices();
+      // pastikan voices sudah ready — Android perlu onvoiceschanged
+      if (window.speechSynthesis) {
+        window.speechSynthesis.getVoices();
+        window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+      }
     },
 
     beforeUnmount() {
