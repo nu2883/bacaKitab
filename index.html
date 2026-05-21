@@ -497,11 +497,12 @@
   <!-- ===================== MAIN: MODE KUIS ===================== -->
   <div v-if="isQuizMode" class="book page-paragraph rtl-text text-right" :style="{ fontSize: fontSizeArabic + 'px' }">
     <template v-for="(item, idx) in dataAwal">
-      <span class="word-stack" :key="String(idx)">
+      <span class="word-stack" :key="String(idx)" :data-key="String(idx)">
         <span class="arab-word rtl-text cursor-pointer"
           :class="{
             'bg-green-100': feedback[String(idx)] && feedback[String(idx)].status === 'correct',
             'bg-pink-100':  feedback[String(idx)] && feedback[String(idx)].status === 'wrong',
+            'is-reading':   isSpeaking && activeWordIndex === String(idx),
             'border-2 border-transparent': true
           }"
           @click.stop="answeredWordIndexes.includes(String(idx))
@@ -511,12 +512,12 @@
           {{
             answeredWordIndexes.includes(String(idx))
               ? (item.arab || item.noHarokat)
-              : (activeWordIndex === String(idx) ? '' : item.noHarokat)
+              : (quizActiveIndex === String(idx) ? '' : item.noHarokat)
           }}
         </span>
 
-        <!-- Pilihan jawaban kuis -->
-        <div v-if="activeWordIndex === String(idx) && quizChoices.length > 0"
+        <!-- Pilihan jawaban kuis — pakai quizActiveIndex, bukan activeWordIndex -->
+        <div v-if="quizActiveIndex === String(idx) && quizChoices.length > 0"
           class="mt-2 flex flex-col gap-2 w-full max-w-xs rtl-text">
           <button v-for="(choice, cidx) in quizChoices" :key="cidx"
             @click.stop="checkQuizAnswer(choice, String(idx), cidx, item)"
@@ -636,7 +637,8 @@
 
         // TTS state
         isSpeaking:         false,
-        activeWordIndex:    null,
+        activeWordIndex:    null,   // index kata yang SEDANG DIBACA (highlight TTS)
+        quizActiveIndex:    null,   // index kata yang SEDANG DIKUIS (tampilkan pilihan jawaban)
         readMode:           'arab-arti',
         readingSpeed:       1.0,
         readingDelayWord:   600,   // jeda antar kata (ms)
@@ -806,7 +808,7 @@
       },
 
       startQuizForWord(idx, word) {
-        this.activeWordIndex = String(idx);
+        this.quizActiveIndex = String(idx);  // pakai quizActiveIndex, bukan activeWordIndex
         this.quizChoices     = [];
         this.quizFeedback    = {};
         this.feedback[String(idx)] = null;
@@ -832,7 +834,7 @@
         // Simpan progress ke localStorage
         this._saveQuizState();
 
-        this.activeWordIndex  = null;
+        this.quizActiveIndex  = null;  // tutup pilihan kuis
         this.clickedWordIndex = null;
 
         clearTimeout(this._quizTimer);
@@ -856,7 +858,8 @@
       closeBubble() {
         this.activeBubble     = null;
         this.clickedWordIndex = null;
-        // jangan reset activeWordIndex — biar highlight baca tetap jalan
+        this.quizActiveIndex  = null;
+        // activeWordIndex TIDAK direset di sini — itu milik TTS
       },
 
       /* ======================================================
@@ -1060,10 +1063,55 @@
               if (!rawText) throw new Error('Teks Arab tidak terdeteksi.');
 
               this.loadingMessage = '2/2: Analisis Nahwu...';
+              const nahwuPrompt = `Kamu adalah ahli ilmu Nahwu dan Sharaf bahasa Arab.
+
+Analisis setiap kata dari teks Arab berikut. Untuk setiap kata hasilkan JSON object dengan field:
+- "no": nomor urut (integer)
+- "arab": kata Arab LENGKAP dengan harakat yang BENAR sesuai kedudukan nahwu (contoh: "تَفْسِيْرُ")
+- "noHarokat": kata Arab TANPA harakat sama sekali (contoh: "تفسير")
+- "arti": arti kata dalam bahasa Indonesia (singkat, 1-4 kata)
+- "kedudukan": kedudukan nahwu lengkap (contoh: "Mubtada' - Marfu' - tanda rafa' dhammah")
+- "latin": transliterasi latin (contoh: "tafsiiru")
+- "harakatSalah1": variasi harakat SALAH pada kata yang SAMA — HARUS berbeda dari field "arab" (contoh jika benar "تَفْسِيْرُ" maka salah bisa "تَفْسِيْرَ")
+- "harakatSalah2": variasi harakat SALAH lainnya — HARUS berbeda dari "arab" dan "harakatSalah1"
+
+ATURAN PENTING:
+1. "arab" harus berharakat BENAR sesuai posisi I'rab
+2. "harakatSalah1" dan "harakatSalah2" harus kata yang SAMA tapi harakat akhir BERBEDA (ganti dhammah→fathah, kasrah→dhammah, dst)
+3. "noHarokat" harus benar-benar tanpa harakat (strip semua tanda baca Arab)
+4. Keluarkan HANYA JSON array, tanpa penjelasan, tanpa markdown
+
+Contoh output yang benar:
+[
+  {
+    "no": 1,
+    "arab": "تَفْسِيْرُ",
+    "noHarokat": "تفسير",
+    "arti": "Tafsir / Penjelasan",
+    "kedudukan": "Mubtada' - Marfu' - tanda rafa' dhammah - Mudhaf",
+    "latin": "tafsiiru",
+    "harakatSalah1": "تَفْسِيْرَ",
+    "harakatSalah2": "تَفْسِيْرِ"
+  },
+  {
+    "no": 2,
+    "arab": "سُوْرَةِ",
+    "noHarokat": "سورة",
+    "arti": "Surah",
+    "kedudukan": "Mudhaf Ilaih - Majrur - tanda jar kasrah",
+    "latin": "suurati",
+    "harakatSalah1": "سُوْرَةُ",
+    "harakatSalah2": "سُوْرَةَ"
+  }
+]
+
+Teks Arab yang dianalisis:
+"""${rawText}"""`;
+
               const nahwuResp = await this.aiClient.models.generateContent({
                 model: 'gemini-2.5-flash',
-                contents: [{ role:'user', parts:[{ text: `Analisis teks Arab berikut, keluarkan HANYA JSON array:\n[{"no":"1.","arab":"النَّقْصِ","arti":"kekurangan","kedudukan":"Majrur","noHarokat":"النقص","latin":"al-naqsi","hal":37,"row":2,"harakatSalah1":"النَقْصَ","harakatSalah2":"النقص"}]\nTeks: """${rawText}"""\nKeluaran HANYA JSON array.` }] }],
-                config: { systemInstruction: 'Anda ahli nahwu. Keluaran HARUS berupa JSON array.', responseMimeType: 'application/json' }
+                contents: [{ role:'user', parts:[{ text: nahwuPrompt }] }],
+                config: { systemInstruction: 'Kamu ahli nahwu. Keluarkan HANYA JSON array sesuai schema. Jangan tambahkan teks lain, markdown, atau komentar.', responseMimeType: 'application/json' }
               });
               let js = String(nahwuResp && (nahwuResp.text || nahwuResp.output_text || '')).trim();
               const f = js.indexOf('['), l = js.lastIndexOf(']');
