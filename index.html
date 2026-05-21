@@ -339,32 +339,29 @@
       <template v-if="dictQuizDone">
         <div class="bg-indigo-600 px-5 py-4 text-center">
           <div class="text-white text-2xl font-bold mb-1">🏁 Kuis Selesai!</div>
-          <div class="text-indigo-200 text-sm">{{ dictQuizQueue.length }} soal dijawab</div>
+          <div class="text-indigo-200 text-sm">Semua {{ dictQuizCorrect }} kata berhasil dijawab benar</div>
         </div>
         <div class="px-5 py-6 text-center">
           <!-- Skor besar -->
-          <div class="text-5xl font-bold mb-1"
-            :class="dictQuizCorrect > dictQuizWrong ? 'text-green-500' : 'text-red-400'">
-            {{ dictQuizCorrect }}<span class="text-2xl text-gray-400">/{{ dictQuizQueue.length }}</span>
-          </div>
-          <div class="text-sm text-gray-500 mb-5">kata terjawab benar</div>
+          <div class="text-5xl font-bold text-green-500 mb-1">{{ dictQuizCorrect }}</div>
+          <div class="text-sm text-gray-500 mb-5">kata dikuasai</div>
 
-          <!-- Rincian -->
+          <!-- Rincian attempt -->
           <div class="flex justify-center gap-6 mb-6">
             <div class="text-center">
               <div class="text-2xl font-bold text-green-500">{{ dictQuizCorrect }}</div>
-              <div class="text-xs text-gray-400">Benar ✅</div>
+              <div class="text-xs text-gray-400">Kata dikuasai ✅</div>
             </div>
             <div class="text-center">
               <div class="text-2xl font-bold text-red-400">{{ dictQuizWrong }}</div>
-              <div class="text-xs text-gray-400">Salah ❌</div>
+              <div class="text-xs text-gray-400">Total jawaban salah ❌</div>
             </div>
           </div>
 
-          <!-- Pesan motivasi -->
+          <!-- Pesan motivasi berdasarkan berapa kali salah -->
           <div class="text-sm text-gray-600 mb-6 italic">
-            <span v-if="dictQuizCorrect === dictQuizQueue.length">Sempurna! Semua benar 🎉</span>
-            <span v-else-if="dictQuizCorrect >= dictQuizQueue.length * 0.7">Bagus! Terus berlatih 💪</span>
+            <span v-if="dictQuizWrong === 0">Sempurna! Tidak ada yang salah 🎉</span>
+            <span v-else-if="dictQuizWrong <= dictQuizCorrect">Bagus! Terus berlatih 💪</span>
             <span v-else>Jangan menyerah, ulangi lagi 📖</span>
           </div>
 
@@ -389,13 +386,13 @@
             <span class="text-white font-bold text-sm">🎯 Kuis Kamus</span>
             <button @click="showDictQuiz=false" class="text-white text-xl leading-none">&times;</button>
           </div>
-          <!-- Progress bar -->
+          <!-- Progress bar: berdasarkan jumlah yang sudah dijawab benar -->
           <div class="bg-amber-300 rounded-full h-2 mb-1">
             <div class="bg-white rounded-full h-2 transition-all"
-              :style="{ width: (dictQuizCurrent / dictQuizQueue.length * 100) + '%' }"></div>
+              :style="{ width: (dictQuizCorrect / (dictQuizCorrect + (dictQuizQueue.length - dictQuizCurrent)) * 100) + '%' }"></div>
           </div>
           <div class="text-amber-100 text-xs text-right">
-            {{ dictQuizCurrent + 1 }} / {{ dictQuizQueue.length }}
+            ✅ {{ dictQuizCorrect }} benar · {{ dictQuizQueue.length - dictQuizCurrent }} soal tersisa
           </div>
         </div>
 
@@ -440,7 +437,7 @@
             </div>
             <button @click="nextDictQuiz"
               class="w-full py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold">
-              {{ dictQuizCurrent + 1 < dictQuizQueue.length ? 'Soal Berikutnya →' : 'Lihat Hasil 🏁' }}
+              {{ dictQuizCurrent + 1 < dictQuizQueue.length ? (dictQuizFeedback === 'wrong' ? 'Lanjut (diulangi nanti) →' : 'Soal Berikutnya →') : 'Lihat Hasil 🏁' }}
             </button>
           </div>
         </div>
@@ -559,14 +556,18 @@
 <script type="module"></script>
 <script>
 (function(){
-  const NAHWU_STORAGE_KEY = 'nahwu_data';
+  const NAHWU_STORAGE_KEY  = 'nahwu_data';
   const API_KEY_STORAGE_KEY = 'geminiApiKey';
+  const QUIZ_STATE_KEY      = 'quiz_state'; // simpan progress kuis mode teks
 
   new Vue({
     el: '#app',
     data() {
       const DEFAULT_FONT_ARABIC  = 24;
       const DEFAULT_FONT_MEANING = 10;
+      const _savedQuiz = (() => {
+        try { return JSON.parse(localStorage.getItem(QUIZ_STATE_KEY) || 'null'); } catch(e) { return null; }
+      })();
       return {
         fontSizeArabic:  Number(localStorage.getItem('fontSizeArabic'))  || DEFAULT_FONT_ARABIC,
         fontSizeMeaning: Number(localStorage.getItem('fontSizeMeaning')) || DEFAULT_FONT_MEANING,
@@ -580,11 +581,12 @@
         showLoadPageModal: false,
         noHalaman: null,
 
-        answeredWordIndexes: [],
+        // Progress kuis — dimuat dari localStorage, tetap ada sampai load data baru
+        answeredWordIndexes: (_savedQuiz && _savedQuiz.answeredWordIndexes) || [],
+        feedback:            (_savedQuiz && _savedQuiz.feedback)            || {},
         isQuizMode: true,
         quizChoices: [],
         quizFeedback: {},
-        feedback: {},
         debugMode: false,
         dataAwal: [],
         dataFetch: [],
@@ -720,11 +722,14 @@
           if (arr) {
             this.dataFetch = arr;
             this.dataAwal  = arr;
+            // Reset progress kuis — data baru = mulai dari awal
             this.feedback  = {};
             this.answeredWordIndexes = [];
             this.quizChoices = [];
-            // simpan ke localStorage agar tidak hilang saat refresh
-            try { localStorage.setItem(NAHWU_STORAGE_KEY, JSON.stringify(arr)); } catch(e) { console.warn('localStorage penuh:', e); }
+            try {
+              localStorage.setItem(NAHWU_STORAGE_KEY, JSON.stringify(arr));
+              localStorage.removeItem(QUIZ_STATE_KEY); // hapus progress lama
+            } catch(e) { console.warn('localStorage penuh:', e); }
             this.showToastNotification(`${arr.length} kata dimuat & disimpan.`, 'green');
           }
         } catch(e) {
@@ -745,6 +750,16 @@
       hideToast() {
         this.showToast = false;
         clearTimeout(this._toastTimer);
+      },
+
+      /* ---- Simpan progress kuis ke localStorage ---- */
+      _saveQuizState() {
+        try {
+          localStorage.setItem(QUIZ_STATE_KEY, JSON.stringify({
+            answeredWordIndexes: this.answeredWordIndexes,
+            feedback: this.feedback,
+          }));
+        } catch(e) { console.warn('gagal simpan quiz state', e); }
       },
 
       /* ---- Kuis ---- */
@@ -785,6 +800,9 @@
         if (!this.answeredWordIndexes.includes(indexKey)) this.answeredWordIndexes.push(indexKey);
 
         this.showToastNotification(word.kedudukan || (correct ? 'Benar!' : 'Salah'), correct ? 'green' : 'red');
+
+        // Simpan progress ke localStorage
+        this._saveQuizState();
 
         this.activeWordIndex  = null;
         this.clickedWordIndex = null;
@@ -1132,8 +1150,13 @@
         this.dictQuizFeedback   = correct ? 'correct' : 'wrong';
         this.dictQuizLastPicked = choice;
 
-        if (correct) this.dictQuizCorrect++;
-        else         this.dictQuizWrong++;
+        if (correct) {
+          this.dictQuizCorrect++;
+        } else {
+          this.dictQuizWrong++;
+          // Masukkan kata salah ke ujung antrian agar muncul lagi
+          this.dictQuizQueue.push({ ...this.dictQuizItem });
+        }
 
         // Update skor di kamus (wrongCount / correctCount)
         const idx = this.myDictionary.findIndex(d => d.arab === this.dictQuizItem.arab);
