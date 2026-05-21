@@ -37,6 +37,7 @@
     }
     .arab-word:hover { transform:translateY(-2px); background:rgba(34,197,94,0.06); }
     .arab-word.is-reading { background:rgba(34,197,94,0.18); font-weight:700; }
+    .arab-word.is-paused  { background:rgba(251,191,36,0.28) !important; outline:2px solid #fbbf24; border-radius:6px; }
 
     #loading-overlay {
       position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
@@ -59,22 +60,77 @@
     }
     body.dark .bubble-dialog-fixed { background:#0b1220; color:#e6eef8; }
 
-    /* ---- Reading bar (mode baca) ---- */
+    /* ---- Reading bar — modern ---- */
     .reading-bar {
-      position:fixed; bottom:0; left:0; right:0; z-index:200;
-      background:#1e293b; color:#f8fafc;
-      padding:10px 16px;
-      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-      box-shadow:0 -4px 20px rgba(0,0,0,0.25);
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      background: rgba(15, 23, 42, 0.97);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      color: #f8fafc; padding: 10px 16px 14px;
+      box-shadow: 0 -2px 24px rgba(0,0,0,0.4);
+      display: flex; flex-direction: column; gap: 7px;
     }
-    .reading-bar .arab-now { font-family:'Amiri',serif; font-size:1.5rem; direction:rtl; }
-    .reading-bar .arti-now { font-size:0.85rem; color:#94a3b8; }
-    .reading-bar .progress-label { font-size:0.75rem; color:#64748b; margin-left:auto; }
-    .reading-bar button { padding:4px 12px; border-radius:8px; font-size:0.8rem; border:none; cursor:pointer; }
-    .reading-bar .btn-stop  { background:#ef4444; color:#fff; }
-    .reading-bar .btn-skip  { background:#64748b; color:#fff; }
-    .reading-bar .btn-prev  { background:#64748b; color:#fff; }
-    .reading-bar select { padding:4px 6px; border-radius:6px; background:#334155; color:#f8fafc; border:none; font-size:0.8rem; }
+    .reading-bar .rb-word-row {
+      display: flex; align-items: center; gap: 10px; min-width: 0;
+    }
+    .reading-bar .arab-now {
+      font-family: 'Amiri', serif; font-size: 1.5rem; direction: rtl; line-height: 1.2;
+    }
+    .reading-bar .arti-now {
+      font-size: 0.82rem; color: #94a3b8;
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .reading-bar .progress-pill {
+      font-size: 0.7rem; background: #1e293b; color: #64748b;
+      padding: 2px 8px; border-radius: 99px; white-space: nowrap; flex-shrink: 0;
+    }
+    .reading-bar .rb-controls {
+      display: flex; align-items: center; gap: 7px;
+    }
+    .reading-bar .rb-btn {
+      display: flex; align-items: center; justify-content: center;
+      border: none; cursor: pointer; border-radius: 10px;
+      transition: transform .1s, opacity .15s;
+      width: 36px; height: 36px; font-size: 1rem; flex-shrink: 0;
+    }
+    .reading-bar .rb-btn:active { transform: scale(0.9); }
+    .reading-bar .rb-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .reading-bar .rb-btn-prev  { background: #334155; color: #cbd5e1; }
+    .reading-bar .rb-btn-play  { background: #22c55e; color: #fff; width:42px; height:42px; font-size:1.15rem; }
+    .reading-bar .rb-btn-pause { background: #f59e0b; color: #fff; width:42px; height:42px; font-size:1.15rem; }
+    .reading-bar .rb-btn-stop  { background: #ef4444; color: #fff; }
+    .reading-bar .rb-btn-skip  { background: #334155; color: #cbd5e1; }
+    .reading-bar .rb-divider   { width:1px; height:26px; background:#334155; flex-shrink:0; margin:0 2px; }
+    .reading-bar select {
+      padding: 4px 6px; border-radius: 8px;
+      background: #1e293b; color: #94a3b8; border: 1px solid #334155; font-size: 0.75rem;
+    }
+    .reading-bar .rb-delay {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 0.7rem; color: #64748b;
+    }
+    .reading-bar .rb-delay input[type=range] { width: 58px; accent-color: #22c55e; }
+    .reading-bar .rb-delay span { font-family: monospace; min-width: 34px; color: #94a3b8; }
+
+    .reading-bar .rb-btn-bookmark {
+      flex-shrink: 0; border: none; cursor: pointer;
+      border-radius: 10px; font-size: 1.1rem;
+      width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform .1s, background .15s;
+    }
+    .reading-bar .rb-btn-bookmark:active { transform: scale(0.88); }
+    .reading-bar .rb-btn-save  { background: #0f172a; border: 1.5px solid #334155; color: #f8fafc; }
+    .reading-bar .rb-btn-save:hover { background: #1e293b; border-color: #22c55e; }
+    .reading-bar .rb-btn-saved { background: #14532d; border: 1.5px solid #22c55e; color: #86efac; cursor: default; }
+    .mini-resume-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 190;
+      background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);
+      color: #94a3b8; font-size: 0.78rem;
+      padding: 8px 16px; display: flex; align-items: center; gap: 10px;
+    }
+    .mini-resume-bar button {
+      padding: 4px 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.75rem;
+    }
 
     .toast {
       position:fixed; top:16px; left:50%; transform:translateX(-50%);
@@ -481,6 +537,7 @@
           <span class="arab-word rtl-text"
             :class="{
               'is-reading': isSpeaking && activeWordIndex === String(idx),
+              'is-paused':  !isSpeaking && pausedWordIndex === String(idx),
               'bg-yellow-200': activeBubble && clickedWordIndex === String(idx)
             }"
             @click.stop="handleWordClick(item, String(idx), $event)"
@@ -503,6 +560,7 @@
             'bg-green-100': feedback[String(idx)] && feedback[String(idx)].status === 'correct',
             'bg-pink-100':  feedback[String(idx)] && feedback[String(idx)].status === 'wrong',
             'is-reading':   isSpeaking && activeWordIndex === String(idx),
+            'is-paused':    !isSpeaking && pausedWordIndex === String(idx),
             'border-2 border-transparent': true
           }"
           @click.stop="answeredWordIndexes.includes(String(idx))
@@ -543,31 +601,71 @@
     </template>
   </div>
 
-  <!-- ===================== READING BAR (muncul saat isSpeaking) ===================== -->
-  <div v-if="isSpeaking" class="reading-bar">
-    <button class="btn-prev" @click="skipReading(-1)">⏮ Ulang</button>
-    <button class="btn-stop" @click="stopReading">⏹ Stop</button>
-    <button class="btn-skip" @click="skipReading(1)">⏭ Lewati</button>
-    <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+  <!-- ===================== READING BAR ===================== -->
+  <div v-if="isSpeaking || isPaused" class="reading-bar">
+
+    <!-- Baris atas: kata + arti + tombol simpan + progress -->
+    <div class="rb-word-row">
       <span class="arab-now">{{ currentReadingItem ? (currentReadingItem.arab || currentReadingItem.noHarokat) : '' }}</span>
-      <span class="arti-now">{{ currentReadingItem ? currentReadingItem.arti : '' }}</span>
+      <div style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;overflow:hidden">
+        <span class="arti-now" v-if="isPaused" style="color:#fbbf24">⏸ Dijeda</span>
+        <span class="arti-now" v-else>{{ currentReadingItem ? currentReadingItem.arti : '' }}</span>
+        <span v-if="currentReadingItem && currentReadingItem.kedudukan"
+          style="font-size:0.68rem;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+          {{ currentReadingItem.kedudukan }}
+        </span>
+      </div>
+      <!-- Tombol simpan ke kamus -->
+      <button
+        v-if="currentReadingItem"
+        @click="saveCurrentWordToDictionary"
+        :class="isCurrentWordInDictionary ? 'rb-btn-saved' : 'rb-btn-save'"
+        class="rb-btn-bookmark"
+        :title="isCurrentWordInDictionary ? 'Sudah di kamus' : 'Simpan ke kamus'"
+      >
+        {{ isCurrentWordInDictionary ? '✅' : '📌' }}
+      </button>
+      <span class="progress-pill">{{ activeWordIndex != null ? (Number(activeWordIndex)+1) : '?' }} / {{ dataAwal.length }}</span>
     </div>
-    <select v-model.number="readingSpeed" @change="changeSpeedLive"
-      style="padding:4px 6px;border-radius:6px;background:#334155;color:#f8fafc;border:none;font-size:0.8rem">
-      <option :value="0.75">0.75×</option>
-      <option :value="1">1×</option>
-      <option :value="1.25">1.25×</option>
-      <option :value="1.5">1.5×</option>
-    </select>
-    <!-- Jeda kata — bisa diubah saat sedang baca -->
-    <label style="display:flex;align-items:center;gap:4px;font-size:0.72rem;color:#94a3b8">
-      ⏱
-      <input type="range" v-model.number="readingDelayWord"
-        min="0" max="3000" step="100"
-        style="width:64px;accent-color:#22c55e">
-      <span style="font-family:monospace;min-width:36px">{{ readingDelayWord }}ms</span>
-    </label>
-    <span class="progress-label">{{ activeWordIndex != null ? (Number(activeWordIndex)+1) : '?' }} / {{ dataAwal.length }}</span>
+
+    <!-- Baris bawah: kontrol + setting -->
+    <div class="rb-controls">
+      <!-- Navigasi -->
+      <button class="rb-btn rb-btn-prev" @click="skipReading(-1)" :disabled="isPaused" title="Ulang kata">⏮</button>
+
+      <!-- Pause / Resume / Play -->
+      <button v-if="isSpeaking && !isPaused" class="rb-btn rb-btn-pause" @click="pauseReading" title="Jeda">⏸</button>
+      <button v-if="isPaused" class="rb-btn rb-btn-play" @click="resumeReading" title="Lanjut">▶</button>
+
+      <button class="rb-btn rb-btn-stop" @click="stopReading" title="Berhenti">⏹</button>
+      <button class="rb-btn rb-btn-skip" @click="skipReading(1)" :disabled="isPaused" title="Lewati">⏭</button>
+
+      <div class="rb-divider"></div>
+
+      <!-- Kecepatan suara -->
+      <select v-model.number="readingSpeed">
+        <option :value="0.75">0.75×</option>
+        <option :value="1">1×</option>
+        <option :value="1.25">1.25×</option>
+        <option :value="1.5">1.5×</option>
+      </select>
+
+      <div class="rb-divider"></div>
+
+      <!-- Jeda antar kata -->
+      <div class="rb-delay" title="Jeda antar kata">
+        ⏱
+        <input type="range" v-model.number="readingDelayWord" min="0" max="3000" step="100">
+        <span>{{ readingDelayWord }}ms</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mini bar: saat tidak sedang baca tapi ada posisi pause tersimpan -->
+  <div v-if="!isSpeaking && !isPaused && pausedWordIndex !== null" class="mini-resume-bar">
+    <span>⏸ Terakhir dibaca: kata ke-{{ Number(pausedWordIndex)+1 }}</span>
+    <button @click="resumeFromPause" style="background:#22c55e;color:#fff">▶ Lanjut dari sini</button>
+    <button @click="clearPause" style="background:#475569;color:#fff">× Hapus</button>
   </div>
 
   <br><br><br><br><br><br>
@@ -585,7 +683,8 @@
 (function(){
   const NAHWU_STORAGE_KEY  = 'nahwu_data';
   const API_KEY_STORAGE_KEY = 'geminiApiKey';
-  const QUIZ_STATE_KEY      = 'quiz_state'; // simpan progress kuis mode teks
+  const QUIZ_STATE_KEY      = 'quiz_state';
+  const READ_STATE_KEY      = 'read_state'; // simpan posisi pause baca
 
   new Vue({
     el: '#app',
@@ -637,12 +736,14 @@
 
         // TTS state
         isSpeaking:         false,
+        isPaused:           false,
         activeWordIndex:    null,   // index kata yang SEDANG DIBACA (highlight TTS)
+        pausedWordIndex:    (() => { try { return localStorage.getItem(READ_STATE_KEY) || null; } catch(e) { return null; } })(),
         quizActiveIndex:    null,   // index kata yang SEDANG DIKUIS (tampilkan pilihan jawaban)
         readMode:           'arab-arti',
         readingSpeed:       1.0,
-        readingDelayWord:   600,   // jeda antar kata (ms)
-        readingDelaySegment: 400,  // jeda antar segmen dalam 1 kata (ms)
+        readingDelayWord:   600,
+        readingDelaySegment: 400,
         _readCurrent:       0,
         _readData:          [],
         currentReadingItem: null,
@@ -680,6 +781,10 @@
             return (a.wrongCount||0) - (b.wrongCount||0);
           return (b.timestamp||0) - (a.timestamp||0); // default: terbaru
         });
+      },
+      isCurrentWordInDictionary() {
+        if (!this.currentReadingItem || !this.currentReadingItem.arab) return false;
+        return this.myDictionary.some(d => d.arab === this.currentReadingItem.arab);
       },
       toastTypeClass() {
         return this.toastType === 'green' ? 'toast green'
@@ -866,13 +971,11 @@
          MODE BACA — startReading / stopReading / skipReading
          ====================================================== */
       startReading(data, startIndex = 0) {
-        // Hentikan dulu jika sedang berjalan
         try { window.speechSynthesis.cancel(); } catch(e) {}
-
         this._readData    = data;
         this._readCurrent = Number(startIndex) || 0;
         this.isSpeaking   = true;
-
+        this.isPaused     = false;
         this._speakNext();
       },
 
@@ -928,7 +1031,10 @@
 
         const item = this._readData[this._readCurrent];
         this.activeWordIndex    = String(this._readCurrent);
+        this.pausedWordIndex    = String(this._readCurrent); // auto-save posisi
         this.currentReadingItem = item;
+        // Simpan posisi ke localStorage tiap kata (survive refresh)
+        try { localStorage.setItem(READ_STATE_KEY, String(this._readCurrent)); } catch(e) {}
 
         this.$nextTick(() => {
           const el = document.querySelector(`[data-key="${this._readCurrent}"]`);
@@ -972,9 +1078,43 @@
 
       stopReading() {
         this.isSpeaking         = false;
+        this.isPaused           = false;
         this.activeWordIndex    = null;
         this.currentReadingItem = null;
         try { window.speechSynthesis.cancel(); } catch(e) {}
+      },
+
+      pauseReading() {
+        if (!this.isSpeaking || this.isPaused) return;
+        try { window.speechSynthesis.cancel(); } catch(e) {}
+        this.isSpeaking      = false;
+        this.isPaused        = true;
+        this.pausedWordIndex = String(this._readCurrent);
+        // Simpan posisi ke localStorage agar survive refresh
+        try { localStorage.setItem(READ_STATE_KEY, String(this._readCurrent)); } catch(e) {}
+      },
+
+      resumeReading() {
+        if (!this.isPaused) return;
+        this.isPaused    = false;
+        this.isSpeaking  = true;
+        this._readCurrent = Number(this.pausedWordIndex) || 0;
+        this._speakNext();
+      },
+
+      resumeFromPause() {
+        // Dipanggil dari mini-bar saat tidak sedang baca
+        if (this.pausedWordIndex === null) return;
+        this._readData    = this.dataAwal;
+        this._readCurrent = Number(this.pausedWordIndex) || 0;
+        this.isPaused     = false;
+        this.isSpeaking   = true;
+        this._speakNext();
+      },
+
+      clearPause() {
+        this.pausedWordIndex = null;
+        try { localStorage.removeItem(READ_STATE_KEY); } catch(e) {}
       },
 
       // delta: +1 lewati, -1 ulang kata ini
@@ -1148,6 +1288,12 @@ Teks Arab yang dianalisis:
             const el = document.getElementById(id); if (el) el.value = '';
           });
         }
+      },
+
+      /* ---- Simpan kata aktif dari reading bar ke kamus ---- */
+      saveCurrentWordToDictionary() {
+        if (!this.currentReadingItem) return;
+        this.addToMyDictionary(this.currentReadingItem);
       },
 
       /* ---- Kamus ---- */
