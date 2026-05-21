@@ -167,13 +167,31 @@
           <option value="arab-latin-arti">Arab + Latin + Arti</option>
         </select>
 
-        <!-- Kecepatan -->
+        <!-- Kecepatan suara -->
         <select v-model.number="readingSpeed" class="text-sm rounded border px-1 py-1">
           <option :value="0.75">0.75×</option>
           <option :value="1">1×</option>
           <option :value="1.25">1.25×</option>
           <option :value="1.5">1.5×</option>
         </select>
+
+        <!-- Jeda antar kata -->
+        <label class="flex items-center gap-1 text-xs text-gray-600">
+          Jeda kata:
+          <input type="range" v-model.number="readingDelayWord"
+            min="0" max="3000" step="100"
+            class="w-20 accent-green-600">
+          <span class="w-10 text-right font-mono">{{ readingDelayWord }}ms</span>
+        </label>
+
+        <!-- Jeda antar segmen -->
+        <label class="flex items-center gap-1 text-xs text-gray-600">
+          Jeda segmen:
+          <input type="range" v-model.number="readingDelaySegment"
+            min="0" max="2000" step="100"
+            class="w-20 accent-indigo-600">
+          <span class="w-10 text-right font-mono">{{ readingDelaySegment }}ms</span>
+        </label>
       </div>
 
       <!-- Kanan: font -->
@@ -540,6 +558,14 @@
       <option :value="1.25">1.25×</option>
       <option :value="1.5">1.5×</option>
     </select>
+    <!-- Jeda kata — bisa diubah saat sedang baca -->
+    <label style="display:flex;align-items:center;gap:4px;font-size:0.72rem;color:#94a3b8">
+      ⏱
+      <input type="range" v-model.number="readingDelayWord"
+        min="0" max="3000" step="100"
+        style="width:64px;accent-color:#22c55e">
+      <span style="font-family:monospace;min-width:36px">{{ readingDelayWord }}ms</span>
+    </label>
     <span class="progress-label">{{ activeWordIndex != null ? (Number(activeWordIndex)+1) : '?' }} / {{ dataAwal.length }}</span>
   </div>
 
@@ -609,13 +635,15 @@
         showMeaning: true,
 
         // TTS state
-        isSpeaking:    false,
-        activeWordIndex: null,
-        readMode:      'arab-arti', // 'arab' | 'arti' | 'arab-latin-arti'
-        readingSpeed:  1.0,
-        _readCurrent:  0,          // index saat ini saat membaca
-        _readData:     [],         // referensi array data yang sedang dibaca
-        currentReadingItem: null,  // untuk ditampilkan di reading bar
+        isSpeaking:         false,
+        activeWordIndex:    null,
+        readMode:           'arab-arti',
+        readingSpeed:       1.0,
+        readingDelayWord:   600,   // jeda antar kata (ms)
+        readingDelaySegment: 400,  // jeda antar segmen dalam 1 kata (ms)
+        _readCurrent:       0,
+        _readData:          [],
+        currentReadingItem: null,
 
         activeBubble:    null,
         clickedWordIndex: null,
@@ -909,20 +937,20 @@
         const latinText = item.latin || '';
         const mode      = this.readMode;
 
-        // Selesai satu kata → jeda 600ms lalu lanjut
+        // Selesai satu kata → jeda sesuai setting lalu lanjut
         const next = () => {
           this._readCurrent++;
-          if (this.isSpeaking) setTimeout(() => this._speakNext(), 600);
+          if (this.isSpeaking) setTimeout(() => this._speakNext(), this.readingDelayWord);
         };
 
         // Pilih urutan segmen sesuai mode
         let segments = [];
-        if      (mode === 'arab')          segments = [arabText];
-        else if (mode === 'arti')          segments = [artiText];
-        else if (mode === 'latin-arti')    segments = [latinText || arabText, artiText];
-        else if (mode === 'arab-arti')     segments = [arabText, artiText];
+        if      (mode === 'arab')            segments = [arabText];
+        else if (mode === 'arti')            segments = [artiText];
+        else if (mode === 'latin-arti')      segments = [latinText || arabText, artiText];
+        else if (mode === 'arab-arti')       segments = [arabText, artiText];
         else if (mode === 'arab-latin-arti') segments = [arabText, latinText || arabText, artiText];
-        else                               segments = [arabText];
+        else                                 segments = [arabText];
 
         // Hapus segmen kosong
         segments = segments.filter(s => s && s.trim());
@@ -931,8 +959,8 @@
         const speakChain = (idx) => {
           if (idx >= segments.length || !this.isSpeaking) { next(); return; }
           this._speakOne(segments[idx], () => {
-            // Jeda 400ms antar segmen (misal antara arab dan arti)
-            setTimeout(() => speakChain(idx + 1), 400);
+            // Jeda antar segmen sesuai setting
+            setTimeout(() => speakChain(idx + 1), this.readingDelaySegment);
           });
         };
 
