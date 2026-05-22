@@ -318,7 +318,7 @@
         <button @click="dictionarySortDir='least-wrong'"
           :class="dictionarySortDir==='least-wrong' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700'"
           class="px-2 py-1 rounded text-xs">Tersedikit Salah ↑</button>
-        <button v-if="myDictionary.length >= 2" @click="startDictQuiz"
+        <button v-if="myDictionary.length >= 2" @click="openDictQuizSetup"
           class="ml-auto px-3 py-1 rounded bg-amber-500 text-white text-xs font-bold">🎯 Kuis Kamus</button>
       </div>
       <!-- List -->
@@ -405,6 +405,108 @@
     </div>
   </div>
 
+  <!-- ===================== SETUP KUIS KAMUS ===================== -->
+  <div v-if="showDictQuizSetup" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+    <div class="bg-white w-[92%] max-w-sm rounded-2xl shadow-2xl overflow-hidden">
+      <!-- Header -->
+      <div class="bg-amber-500 px-5 py-3 flex items-center justify-between">
+        <span class="text-white font-bold">🎯 Atur Kuis Kamus</span>
+        <button @click="showDictQuizSetup=false" class="text-white text-xl leading-none">&times;</button>
+      </div>
+
+      <div class="px-5 py-4 space-y-5">
+
+        <!-- 1. Pilih jumlah soal per level -->
+        <div>
+          <p class="text-xs font-semibold text-gray-500 mb-2">JUMLAH SOAL PER LEVEL</p>
+          <div class="flex gap-2 flex-wrap">
+            <button v-for="n in [5, 10, 20, 50, 0]" :key="n"
+              @click="dictQuizBatchSize = n"
+              :class="dictQuizBatchSize === n
+                ? 'bg-amber-500 text-white border-amber-500'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-amber-400'"
+              class="px-3 py-1.5 rounded-lg border text-sm font-medium transition">
+              {{ n === 0 ? 'Semua' : n }}
+            </button>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">
+            Total kamus: {{ sortedDictionary.filter(d=>d.arti&&d.arab).length }} kata
+            → {{ dictQuizLevels.length }} level
+          </p>
+        </div>
+
+        <!-- 2. Pilih mode level -->
+        <div>
+          <p class="text-xs font-semibold text-gray-500 mb-2">MODE LEVEL</p>
+          <div class="flex gap-2">
+            <button @click="dictQuizMode='level'"
+              :class="dictQuizMode==='level'
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'"
+              class="flex-1 py-2 rounded-lg border text-sm font-medium transition text-center">
+              <div>📦 Per Level</div>
+              <div class="text-xs opacity-70 mt-0.5">Level 1: kata 1–{{ dictQuizBatchSize||'semua' }}</div>
+            </button>
+            <button @click="dictQuizMode='cumulative'"
+              :class="dictQuizMode==='cumulative'
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'"
+              class="flex-1 py-2 rounded-lg border text-sm font-medium transition text-center">
+              <div>📈 Kumulatif</div>
+              <div class="text-xs opacity-70 mt-0.5">Level 2: kata 1–{{ (dictQuizBatchSize||0)*2||'semua' }}</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Pilih level -->
+        <div v-if="dictQuizLevels.length > 0">
+          <p class="text-xs font-semibold text-gray-500 mb-2">
+            PILIH LEVEL
+            <span class="text-gray-400 font-normal ml-1">
+              (urut: {{ dictionarySortDir === 'desc' ? 'Terbaru' : dictionarySortDir === 'most-wrong' ? 'Terbanyak Salah' : 'Tersedikit Salah' }})
+            </span>
+          </p>
+
+          <!-- Summary hasil level terakhir (muncul setelah selesai kuis & setting belum berubah) -->
+          <div v-if="isLastResultValid" class="mb-3 p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-xs flex items-center gap-3">
+            <span class="text-indigo-600 font-bold text-sm">Level {{ dictQuizLastResult.level }}</span>
+            <span class="text-gray-500">selesai</span>
+            <span class="text-green-600 font-semibold">✅ {{ dictQuizLastResult.correct }}</span>
+            <span class="text-red-400 font-semibold">❌ {{ dictQuizLastResult.wrong }}</span>
+            <span v-if="dictQuizLastResult.level < dictQuizLevels.length"
+              class="ml-auto text-indigo-500 font-semibold">→ Level {{ dictQuizLastResult.level + 1 }}</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 max-h-52 overflow-y-auto">
+            <button v-for="lv in dictQuizLevels" :key="lv.level"
+              @click="startDictQuiz(lv)"
+              :class="[
+                'flex flex-col items-center py-2.5 px-1 rounded-xl border transition text-center',
+                isLastResultValid && dictQuizLastResult.level === lv.level
+                  ? 'bg-indigo-50 border-indigo-400 ring-2 ring-indigo-300'
+                  : isLastResultValid && dictQuizLastResult.level + 1 === lv.level
+                    ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-200'
+                    : 'bg-gray-50 hover:bg-amber-50 hover:border-amber-400 border-gray-200'
+              ]">
+              <span v-if="isLastResultValid && dictQuizLastResult.level === lv.level"
+                class="text-[10px] bg-indigo-500 text-white px-1.5 rounded-full mb-0.5">Terakhir</span>
+              <span v-else-if="isLastResultValid && dictQuizLastResult.level + 1 === lv.level"
+                class="text-[10px] bg-amber-500 text-white px-1.5 rounded-full mb-0.5">Berikutnya</span>
+              <span v-else class="text-[10px] text-transparent mb-0.5">·</span>
+              <span class="text-sm font-bold text-gray-700">{{ lv.label }}</span>
+              <span class="text-xs text-gray-400 mt-0.5">{{ lv.desc }}</span>
+              <span class="text-xs text-amber-600 mt-1 font-medium">{{ lv.end - lv.start }} soal</span>
+            </button>
+          </div>
+        </div>
+
+        <p v-else class="text-sm text-center text-gray-400 italic py-2">
+          Belum ada kata di kamus.
+        </p>
+      </div>
+    </div>
+  </div>
+
   <!-- ===================== KUIS KAMUS ===================== -->
   <div v-if="showDictQuiz" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
     <div class="bg-white w-[92%] max-w-sm rounded-2xl shadow-2xl overflow-hidden">
@@ -412,43 +514,32 @@
       <!-- ── LAYAR HASIL AKHIR ── -->
       <template v-if="dictQuizDone">
         <div class="bg-indigo-600 px-5 py-4 text-center">
-          <div class="text-white text-2xl font-bold mb-1">🏁 Kuis Selesai!</div>
-          <div class="text-indigo-200 text-sm">Semua {{ dictQuizCorrect }} kata berhasil dijawab benar</div>
+          <div class="text-white text-2xl font-bold mb-1">🏁 Level {{ dictQuizLevel }} Selesai!</div>
+          <div class="text-indigo-200 text-sm">{{ dictQuizCorrect }} kata dikuasai · {{ dictQuizWrong }}× salah</div>
         </div>
         <div class="px-5 py-6 text-center">
-          <!-- Skor besar -->
           <div class="text-5xl font-bold text-green-500 mb-1">{{ dictQuizCorrect }}</div>
-          <div class="text-sm text-gray-500 mb-5">kata dikuasai</div>
-
-          <!-- Rincian attempt -->
-          <div class="flex justify-center gap-6 mb-6">
+          <div class="text-sm text-gray-500 mb-4">kata berhasil dijawab benar</div>
+          <div class="flex justify-center gap-6 mb-5">
             <div class="text-center">
               <div class="text-2xl font-bold text-green-500">{{ dictQuizCorrect }}</div>
-              <div class="text-xs text-gray-400">Kata dikuasai ✅</div>
+              <div class="text-xs text-gray-400">Dikuasai ✅</div>
             </div>
             <div class="text-center">
               <div class="text-2xl font-bold text-red-400">{{ dictQuizWrong }}</div>
-              <div class="text-xs text-gray-400">Total jawaban salah ❌</div>
+              <div class="text-xs text-gray-400">Total salah ❌</div>
             </div>
           </div>
-
-          <!-- Pesan motivasi berdasarkan berapa kali salah -->
-          <div class="text-sm text-gray-600 mb-6 italic">
-            <span v-if="dictQuizWrong === 0">Sempurna! Tidak ada yang salah 🎉</span>
+          <div class="text-sm text-gray-500 italic mb-5">
+            <span v-if="dictQuizWrong === 0">Sempurna! 🎉</span>
             <span v-else-if="dictQuizWrong <= dictQuizCorrect">Bagus! Terus berlatih 💪</span>
             <span v-else>Jangan menyerah, ulangi lagi 📖</span>
           </div>
-
-          <div class="flex gap-2">
-            <button @click="startDictQuiz"
-              class="flex-1 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold">
-              🔄 Ulangi Kuis
-            </button>
-            <button @click="showDictQuiz=false"
-              class="flex-1 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm">
-              Tutup
-            </button>
-          </div>
+          <!-- Langsung kembali ke setup, level terakhir sudah ter-highlight -->
+          <button @click="showDictQuiz=false; showDictQuizSetup=true;"
+            class="w-full py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold">
+            ← Pilih Level Berikutnya
+          </button>
         </div>
       </template>
 
@@ -533,7 +624,7 @@
     </div>
     <div v-else class="page-paragraph" :style="{ fontSize: fontSizeArabic + 'px' }" aria-live="polite">
       <template v-for="(item, idx) in dataAwal">
-        <span class="word-stack" :key="String(idx)">
+        <span class="word-stack" :key="String(idx)" :data-key="String(idx)">
           <span class="arab-word rtl-text"
             :class="{
               'is-reading': isSpeaking && activeWordIndex === String(idx),
@@ -759,15 +850,21 @@
 
         // kuis kamus
         showDictQuiz:       false,
-        dictQuizQueue:      [],    // antrian soal (array kata teracak)
-        dictQuizCurrent:    0,     // index soal aktif
+        showDictQuizSetup:  false,  // layar pemilihan jumlah soal & level
+        dictQuizQueue:      [],
+        dictQuizCurrent:    0,
         dictQuizItem:       null,
         dictQuizChoices:    [],
         dictQuizFeedback:   null,
         dictQuizLastPicked: null,
         dictQuizCorrect:    0,
         dictQuizWrong:      0,
-        dictQuizDone:       false, // true = tampilkan hasil akhir
+        dictQuizDone:       false,
+        dictQuizLastResult: null,  // { level, correct, wrong, batchSize, mode, sortDir }
+        // setup
+        dictQuizBatchSize:  10,     // 5 | 10 | 20 | 50 | 0=semua
+        dictQuizMode:       'level', // 'level' | 'cumulative'
+        dictQuizLevel:      1,
         dictionarySortDir:  'desc',
       };
     },
@@ -781,6 +878,31 @@
             return (a.wrongCount||0) - (b.wrongCount||0);
           return (b.timestamp||0) - (a.timestamp||0); // default: terbaru
         });
+      },
+      // Daftar level yang tersedia berdasarkan batchSize dan jumlah kamus
+      dictQuizLevels() {
+        const pool = this.sortedDictionary.filter(d => d.arti && d.arab);
+        const total = pool.length;
+        if (!total) return [];
+        const size = this.dictQuizBatchSize || total; // 0 = semua
+        const count = Math.ceil(total / size);
+        return Array.from({ length: count }, (_, i) => {
+          const start = i * size;
+          const end   = Math.min(start + size, total);
+          if (this.dictQuizMode === 'cumulative') {
+            return { level: i+1, label: `Level ${i+1}`, desc: `Kata 1–${end}`, start: 0, end };
+          } else {
+            return { level: i+1, label: `Level ${i+1}`, desc: `Kata ${start+1}–${end}`, start, end };
+          }
+        });
+      },
+      // Apakah dictQuizLastResult masih relevan dengan setting saat ini
+      isLastResultValid() {
+        const r = this.dictQuizLastResult;
+        if (!r) return false;
+        return r.batchSize === this.dictQuizBatchSize
+            && r.mode      === this.dictQuizMode
+            && r.sortDir   === this.dictionarySortDir;
       },
       isCurrentWordInDictionary() {
         if (!this.currentReadingItem || !this.currentReadingItem.arab) return false;
@@ -801,7 +923,11 @@
           clearTimeout(this.transparencyTimer);
           this.isButtonTransparent = false;
         }
-      }
+      },
+      // Reset highlight level terakhir saat setting kuis berubah
+      dictQuizBatchSize() { this.dictQuizLastResult = null; },
+      dictQuizMode()      { this.dictQuizLastResult = null; },
+      dictionarySortDir() { this.dictQuizLastResult = null; },
     },
 
     methods: {
@@ -1316,28 +1442,37 @@ Teks Arab yang dianalisis:
       },
 
       /* ---- Kuis Kamus ---- */
-      startDictQuiz() {
-        const pool = this.myDictionary.filter(d => d.arti && d.arab);
+      openDictQuizSetup() {
+        const pool = this.sortedDictionary.filter(d => d.arti && d.arab);
         if (pool.length < 2) {
           this.showToastNotification('Minimal 2 kata yang punya arti untuk kuis.', 'orange');
           return;
         }
-        this.showDictionary = false;
+        this.showDictionary    = false;
+        this.showDictQuizSetup = true;
+      },
 
-        // Acak urutan seluruh pool → jadi antrian soal
-        const shuffled = pool.slice();
+      startDictQuiz(levelObj) {
+        const pool = this.sortedDictionary.filter(d => d.arti && d.arab);
+        // Potong sesuai range level
+        const slice = pool.slice(levelObj.start, levelObj.end);
+
+        // Acak urutan slice
+        const shuffled = slice.slice();
         for (let i = shuffled.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
+          const j = Math.floor(Math.random() * (i+1));
           [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
 
-        this.dictQuizQueue      = shuffled;      // antrian soal
-        this.dictQuizCurrent    = 0;             // index soal aktif
-        this.dictQuizCorrect    = 0;             // jumlah benar
-        this.dictQuizWrong      = 0;             // jumlah salah
-        this.dictQuizDone       = false;         // flag selesai
+        this.dictQuizQueue      = shuffled;
+        this.dictQuizCurrent    = 0;
+        this.dictQuizCorrect    = 0;
+        this.dictQuizWrong      = 0;
+        this.dictQuizDone       = false;
         this.dictQuizFeedback   = null;
         this.dictQuizLastPicked = null;
+        this.dictQuizLevel      = levelObj.level;
+        this.showDictQuizSetup  = false;
 
         this._loadDictQuizItem();
         this.showDictQuiz = true;
@@ -1393,7 +1528,15 @@ Teks Arab yang dianalisis:
       nextDictQuiz() {
         this.dictQuizCurrent++;
         if (this.dictQuizCurrent >= this.dictQuizQueue.length) {
-          // Semua soal selesai → tampilkan hasil
+          // Simpan hasil level ini sebelum tampil layar selesai
+          this.dictQuizLastResult = {
+            level:     this.dictQuizLevel,
+            correct:   this.dictQuizCorrect,
+            wrong:     this.dictQuizWrong,
+            batchSize: this.dictQuizBatchSize,
+            mode:      this.dictQuizMode,
+            sortDir:   this.dictionarySortDir,
+          };
           this.dictQuizDone = true;
         } else {
           this._loadDictQuizItem();
