@@ -152,13 +152,26 @@
       text-align:center; direction:ltr; font-family:system-ui,Arial,sans-serif;
       color:#065f46; background:rgba(255,255,255,0.9); padding:3px 6px;
       border-radius:6px; box-shadow:0 6px 18px rgba(2,6,23,0.06);
-      word-break:break-word; white-space:normal; pointer-events:none; margin-bottom:25px;
+      word-break:break-word; white-space:normal; pointer-events:none; margin-bottom:0;
     }
     .word-meaning.hidden { display:none !important; }
+    /* Kalau tidak ada nahwu di bawahnya, beri jarak ke arab berikutnya */
+    .word-meaning:last-child { margin-bottom:25px; }
     body.dark .word-meaning { color:#d1fae5; background:rgba(7,10,19,0.75); box-shadow:0 6px 18px rgba(2,6,23,0.45); }
+
+    .word-nahwu {
+      display:block; line-height:1.05; margin-top:0.2rem; max-width:14ch;
+      text-align:center; direction:ltr; font-family:system-ui,Arial,sans-serif;
+      color:#14532d; background:#d1fae5; padding:2px 6px;
+      border-radius:5px; box-shadow:0 2px 6px rgba(0,0,0,0.06);
+      word-break:break-word; white-space:normal; pointer-events:none; margin-bottom:25px;
+    }
+    .word-nahwu.hidden { display:none !important; }
+    body.dark .word-nahwu { color:#d1fae5; background:#064e2a; }
 
     @media (max-width:480px) {
       .word-meaning { font-size:.6rem; max-width:10ch; padding:2px 6px; }
+      .word-nahwu   { font-size:.55rem; max-width:10ch; padding:1px 5px; }
       .word-stack   { margin:0 .25rem .45rem .25rem; }
     }
   </style>
@@ -203,6 +216,7 @@
       <div class="flex items-center gap-3 flex-wrap">
         <label class="flex items-center gap-1 text-sm"><input type="checkbox" v-model="showArabic"> Harokat</label>
         <label class="flex items-center gap-1 text-sm"><input type="checkbox" v-model="showMeaning"> Arti</label>
+        <label class="flex items-center gap-1 text-sm"><input type="checkbox" v-model="showNahwu"> Nahwu</label>
         <button @click="showLoadPageModal=true" class="px-3 py-1 rounded-lg bg-blue-600 text-white text-sm">Load Data</button>
 
         <!-- Tombol Baca / Stop -->
@@ -637,6 +651,8 @@
           </span>
           <small class="word-meaning" :class="{ hidden: !(showMeaning || clickedWordIndex === String(idx)) }"
             :style="{ fontSize: fontSizeMeaning + 'px' }">{{ item.arti || '—' }}</small>
+          <small class="word-nahwu" :class="{ hidden: !showNahwu }"
+            :style="{ fontSize: (fontSizeMeaning - 1) + 'px' }">{{ item.kedudukan || '—' }}</small>
         </span>
       </template>
     </div>
@@ -824,6 +840,7 @@
         dictionarySortDir: 'desc',
         showArabic: true,
         showMeaning: true,
+        showNahwu: false,
 
         // TTS state
         isSpeaking:         false,
