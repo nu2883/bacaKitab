@@ -155,7 +155,6 @@
       word-break:break-word; white-space:normal; pointer-events:none; margin-bottom:0;
     }
     .word-meaning.hidden { display:none !important; }
-    /* Kalau tidak ada nahwu di bawahnya, beri jarak ke arab berikutnya */
     .word-meaning:last-child { margin-bottom:25px; }
     body.dark .word-meaning { color:#d1fae5; background:rgba(7,10,19,0.75); box-shadow:0 6px 18px rgba(2,6,23,0.45); }
 
@@ -168,6 +167,13 @@
     }
     .word-nahwu.hidden { display:none !important; }
     body.dark .word-nahwu { color:#d1fae5; background:#064e2a; }
+
+    .hal-sticky {
+      position: sticky; top: 0; z-index: 70;
+      text-align: center; padding: 6px 0 4px;
+      background: linear-gradient(180deg,#f9f1d1 80%,rgba(249,241,209,0) 100%);
+    }
+    body.dark .hal-sticky { background: linear-gradient(180deg,#071029 80%,rgba(7,16,41,0) 100%); }
 
     @media (max-width:480px) {
       .word-meaning { font-size:.6rem; max-width:10ch; padding:2px 6px; }
@@ -235,6 +241,7 @@
           <option value="arti">Arti saja</option>
           <option value="latin-arti">Latin + Arti</option>
           <option value="arab-latin-arti">Arab + Latin + Arti</option>
+          <option value="latin">Latin saja</option>
         </select>
 
         <!-- Kecepatan suara -->
@@ -628,7 +635,14 @@
   <!-- ===================== MAIN: MODE NORMAL ===================== -->
   <br>
   <div v-if="!isQuizMode" class="book">
-    <div class="flex justify-between items-center border-b pb-2 mb-4 mt-4">
+    <div v-if="currentHal" class="hal-sticky">
+      <span class="inline-block px-4 py-1 rounded-full text-sm font-semibold"
+        style="background:#f4e2a3;color:#78350f;border:1px solid #d97706;letter-spacing:0.05em">
+        📖 Halaman {{ currentHal }}
+      </span>
+      <br>
+    </div>
+    <div class="flex justify-between items-center border-b pb-2 mb-4 mt-2">
       <div class="text-lg font-semibold">Teks Arab Interaktif</div>
       <button @click="copyArabicText" :disabled="dataAwal.length===0"
         class="px-3 py-1 rounded bg-blue-600 text-white text-sm disabled:opacity-40">📋 Salin Teks Arab</button>
@@ -638,7 +652,9 @@
     </div>
     <div v-else class="page-paragraph" :style="{ fontSize: fontSizeArabic + 'px' }" aria-live="polite">
       <template v-for="(item, idx) in dataAwal">
-        <span class="word-stack" :key="String(idx)" :data-key="String(idx)">
+        <div v-if="item.noHarokat === 'NL' || item.arab === 'NL'"
+          :key="'nl-'+idx" class="w-full" style="height:2rem; margin-bottom:0.5rem; border-top:1px dashed rgba(0,0,0,0.08)"></div>
+        <span v-else class="word-stack" :key="String(idx)" :data-key="String(idx)">
           <span class="arab-word rtl-text"
             :class="{
               'is-reading': isSpeaking && activeWordIndex === String(idx),
@@ -658,10 +674,22 @@
     </div>
   </div>
 
-  <!-- ===================== MAIN: MODE KUIS ===================== -->
-  <div v-if="isQuizMode" class="book page-paragraph rtl-text text-right" :style="{ fontSize: fontSizeArabic + 'px' }">
+<!-- ===================== MAIN: MODE KUIS ===================== -->
+  <div v-if="isQuizMode" class="book">
+    <div v-if="currentHal" class="hal-sticky">
+      <span class="inline-block px-4 py-1 rounded-full text-sm font-semibold"
+        style="background:#f4e2a3;color:#78350f;border:1px solid #d97706;letter-spacing:0.05em">
+        📖 Halaman {{ currentHal }}
+      </span>
+      
+    </div>
+    <br><br>
+    <div class="page-paragraph rtl-text text-right" :style="{ fontSize: fontSizeArabic + 'px' }">
     <template v-for="(item, idx) in dataAwal">
-      <span class="word-stack" :key="String(idx)" :data-key="String(idx)">
+      <div v-if="item.noHarokat === 'NL' || item.arab === 'NL'"
+        :key="'nl-'+idx" class="w-full" style="height:2rem; margin-bottom:0.5rem; border-top:1px dashed rgba(0,0,0,0.08)"></div>
+
+      <span v-else class="word-stack" :key="String(idx)" :data-key="String(idx)">
         <span class="arab-word rtl-text cursor-pointer"
           :class="{
             'bg-green-100': feedback[String(idx)] && feedback[String(idx)].status === 'correct',
@@ -705,10 +733,11 @@
           :class="{ hidden: !answeredWordIndexes.includes(String(idx)) }"
           :style="{ fontSize: fontSizeMeaning + 'px' }">{{ item.arti || '—' }}</small>
       </span>
-    </template>
+        </template>
+    </div>
   </div>
 
-  <!-- ===================== READING BAR ===================== -->
+<!-- ===================== READING BAR ===================== -->
   <div v-if="isSpeaking || isPaused" class="reading-bar">
 
     <!-- Baris atas: kata + arti + tombol simpan + progress -->
@@ -887,6 +916,12 @@
     },
 
     computed: {
+      currentHal() {
+        const pages = [...new Set(this.dataAwal.filter(i => i.hal).map(i => i.hal))];
+        if (!pages.length) return null;
+        if (pages.length === 1) return String(pages[0]);
+        return pages[0] + '–' + pages[pages.length - 1];
+      },
       sortedDictionary() {
         return this.myDictionary.slice().sort((a, b) => {
           if (this.dictionarySortDir === 'most-wrong')
@@ -1173,6 +1208,12 @@
         }
 
         const item = this._readData[this._readCurrent];
+        // Skip sentinel NL
+        if (item.noHarokat === 'NL' || item.arab === 'NL') {
+          this._readCurrent++;
+          this._speakNext();
+          return;
+        }
         this.activeWordIndex    = String(this._readCurrent);
         this.pausedWordIndex    = String(this._readCurrent); // auto-save posisi
         this.currentReadingItem = item;
@@ -1199,6 +1240,7 @@
         let segments = [];
         if      (mode === 'arab')            segments = [arabText];
         else if (mode === 'arti')            segments = [artiText];
+        else if (mode === 'latin')           segments = [latinText || arabText];
         else if (mode === 'latin-arti')      segments = [latinText || arabText, artiText];
         else if (mode === 'arab-arti')       segments = [arabText, artiText];
         else if (mode === 'arab-latin-arti') segments = [arabText, latinText || arabText, artiText];
