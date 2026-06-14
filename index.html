@@ -1621,14 +1621,47 @@
         if (!kedudukan) return '';
         const k = kedudukan.toLowerCase();
 
-        const hasFiil  = /\bfi['\u2018\u2019]?il\b|\bfiil\b/.test(k);
-        const hasHarf  = /\bharf\b|\bhuruf\b/.test(k);
-        const hasIsim  = /\bisim\b|\bmubtada\b|\bkhabar\b|\bfa'il\b|\bfa\u2019il\b|\bmaf'ul\b|\bmudhaf\b|\bmajrur\b|\bna'at\b|\bbadal\b|\btaukid\b|\bhal\b|\btamyiz\b|\bmunada\b|\bzharaf\b/.test(k);
+        // --- WHITELIST ISIM ---
+        const isimKeywords = [
+          'mubtada','khobar','khabar',
+          "fa'il","fa’il","naibul fa'il","naib","naibul",
+          "maf'ul bih","maf'ul mutlaq","maf'ul fih","maf'ul liajlih","maf'ul ma'ah","maf'ul",
+          'haal','hal','tamyiz','munada','mustatsna',
+          'badal',"'athaf",'athaf',"na'at",'taukid',
+          'mudhaf ilaih','mudhaf',
+          'isim isyarat','isim maushul','isim','dhomir','dhamir',
+          'zharaf','zharf','dharaf',
+        ];
 
-        if (hasFiil)              return 'nahwu-fiil';   // fi'il menang segalanya
-        if (hasHarf && hasIsim)   return 'nahwu-isim';   // huruf + isim → isim
-        if (hasHarf)              return 'nahwu-huruf';  // huruf murni
-        return 'nahwu-isim';                             // default isim
+        // --- WHITELIST FI'IL ---
+        const fiilKeywords = [
+          "fi'il madhi","fi'il mudhari","fi'il amr","fi'il nahi",
+          "fi'il mabni","fi'il mu'rab","fi'il",
+          'fiil',
+        ];
+
+        // --- WHITELIST HURUF ---
+        const hurufKeywords = [
+          'huruf jar','huruf athaf','huruf nida','huruf istifham',
+          'huruf nafi','huruf syarat','huruf taukid','huruf nashab',
+          'huruf jazm','huruf muqattha','huruf istisna','huruf qasam',
+          'huruf','harf',
+        ];
+
+        // Cek fi'il dulu (prioritas tertinggi)
+        const hasFiil  = fiilKeywords.some(w => k.includes(w));
+
+        // Cek isim
+        const hasIsim  = isimKeywords.some(w => k.includes(w));
+
+        // Cek huruf
+        const hasHuruf = hurufKeywords.some(w => k.includes(w));
+
+        if (hasFiil)             return 'nahwu-fiil';   // fi'il menang segalanya
+        if (hasHuruf && hasIsim) return 'nahwu-isim';   // campuran huruf+isim → isim
+        if (hasHuruf)            return 'nahwu-huruf';  // huruf murni
+        if (hasIsim)             return 'nahwu-isim';   // isim murni
+        return 'nahwu-isim';                            // default: anggap isim
       },
 
       /* ---- Manual Input ---- */
