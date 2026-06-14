@@ -253,8 +253,8 @@
     .word-nahwu.hidden { display:none !important; }
     body.dark .word-nahwu { color:#d1fae5; background:#064e2a; }
 
-    .nahwu-isim  { background: rgba(147,210,255,0.35); border-radius: 5px; }
-    .nahwu-huruf { background: rgba(255,183,107,0.38); border-radius: 5px; }
+    .nahwu-isim  { background: rgba(59,130,246,0.22); border-radius: 5px; box-shadow: inset 0 0 0 1.5px rgba(59,130,246,0.35); }
+    .nahwu-huruf { background: rgba(220,38,38,0.15); border-radius: 5px; box-shadow: inset 0 0 0 1.5px rgba(220,38,38,0.4); }
     .nahwu-fiil  { background: transparent; }
     .hal-sticky {
       position: sticky; top: 0; z-index: 70;
@@ -522,23 +522,33 @@
 
         <!-- TAB: COPY PROMPT -->
         <div v-if="manualInputTab==='prompt'">
-          <p class="text-xs text-gray-500 mb-3">
-            <strong>Alur kerja:</strong><br>
-            1️⃣ Foto teks Arab → upload ke Gemini/ChatGPT, minta ekstrak teks Arab<br>
-            2️⃣ Copy teks Arab hasil ekstraksi<br>
-            3️⃣ Buat chat baru → paste teks Arab + prompt di bawah ini<br>
-            4️⃣ Copy hasil JSON → kembali ke app → tab <strong>📋 Paste JSON</strong>
+          <!-- Sub-tab -->
+          <div class="flex gap-2 mb-3">
+            <button @click="manualPromptSub='foto'"
+              :class="manualPromptSub==='foto' ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-600'"
+              class="px-3 py-1 rounded-full text-xs font-semibold transition">📷 Prompt Foto → Teks</button>
+            <button @click="manualPromptSub='nahwu'"
+              :class="manualPromptSub==='nahwu' ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-600'"
+              class="px-3 py-1 rounded-full text-xs font-semibold transition">🔬 Prompt Teks → JSON Nahwu</button>
+          </div>
+
+          <!-- Alur kerja -->
+          <p class="text-xs text-gray-500 mb-2">
+            <template v-if="manualPromptSub==='foto'">
+              <strong>Langkah 1:</strong> Upload foto teks Arab ke Gemini/ChatGPT, lalu kirim prompt ini → dapatkan teks Arab mentah.
+            </template>
+            <template v-else>
+              <strong>Langkah 2:</strong> Di chat baru, paste teks Arab hasil ekstraksi + prompt ini → dapatkan JSON siap paste ke app.
+            </template>
           </p>
+
           <div class="relative">
-            <pre class="bg-gray-50 border rounded-lg p-3 text-xs overflow-auto whitespace-pre-wrap" style="direction:ltr;max-height:320px">{{ _manualPromptText() }}</pre>
-            <button @click="_copyPrompt()"
+            <pre class="bg-gray-50 border rounded-lg p-3 text-xs overflow-auto whitespace-pre-wrap" style="direction:ltr;max-height:300px">{{ manualPromptSub==='foto' ? _promptFotoText() : _manualPromptText() }}</pre>
+            <button @click="_copyPromptSub()"
               class="absolute top-2 right-2 px-3 py-1 rounded bg-amber-600 text-white text-xs font-bold hover:bg-amber-700 transition">
               📋 Copy
             </button>
           </div>
-          <p class="text-xs text-gray-400 mt-2">
-            Ganti <code class="bg-gray-100 px-1 rounded">[PASTE TEKS ARAB DI SINI]</code> dengan teks Arab yang sudah diekstrak.
-          </p>
         </div>
 
       </div>
@@ -1106,6 +1116,7 @@
           return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}`;
         })(),
         manualSavedList: [],
+        manualPromptSub: 'foto',
         dictionarySortDir: 'desc',
         showArabic: true,
         showMeaning: true,
@@ -1769,6 +1780,30 @@
         this.showToastNotification('Data dihapus.', 'green');
       },
 
+      _promptFotoText() {
+        return `Tolong ekstrak semua teks Arab dari gambar ini.
+
+ATURAN:
+1. Keluarkan HANYA teks Arab murni, tanpa terjemahan atau penjelasan
+2. Pertahankan urutan baca kanan ke kiri
+3. Sertakan harakat/tanda baca Arab jika terlihat jelas di gambar
+4. Pisahkan setiap ayat/kalimat dengan baris baru
+5. Jangan tambahkan nomor atau simbol apapun
+
+Keluarkan HANYA teks Arabnya saja.`;
+      },
+
+      _copyPromptSub() {
+        const text = this.manualPromptSub === 'foto' ? this._promptFotoText() : this._manualPromptText();
+        navigator.clipboard.writeText(text)
+          .then(() => this.showToastNotification(
+            this.manualPromptSub === 'foto'
+              ? '📷 Prompt foto disalin! Upload foto ke Gemini/ChatGPT lalu paste.'
+              : '🔬 Prompt Nahwu disalin! Paste teks Arab + prompt ini ke AI.',
+            'green'))
+          .catch(() => this.showToastNotification('Gagal copy. Coba pilih manual.', 'red'));
+      },
+
       _manualPromptText() {
         return `Kamu adalah ahli ilmu Nahwu dan Sharaf bahasa Arab.
 
@@ -1794,12 +1829,7 @@ Teks Arab yang dianalisis:
 """`;
       },
 
-      _copyPrompt() {
-        const text = this._manualPromptText();
-        navigator.clipboard.writeText(text)
-          .then(() => this.showToastNotification('Prompt disalin! Buka Gemini/ChatGPT dan paste.', 'green'))
-          .catch(() => this.showToastNotification('Gagal copy. Coba pilih manual.', 'red'));
-      },
+
 
       /* ---- API Key ---- */
       openApiKeyModal()  { this.tempApiKey = localStorage.getItem(API_KEY_STORAGE_KEY) || ''; this.showApiKeyModal = true; },
