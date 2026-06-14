@@ -18,10 +18,95 @@
 
     .header-controls {
       position:fixed; top:0; left:0; right:0;
-      padding:12px 16px; z-index:80;
-      background:linear-gradient(180deg,#f4e2a3 0%,#f9f1d1 100%);
-      box-shadow:0 2px 12px rgba(0,0,0,0.08);
+      z-index:80;
+      background: linear-gradient(180deg,#f4e2a3 0%,#f0d98a 100%);
+      box-shadow: 0 2px 16px rgba(120,80,0,0.13);
     }
+    .nav-top {
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 9px 16px;
+      border-bottom: 1px solid rgba(120,80,0,0.12);
+    }
+    .nav-brand {
+      display:flex; align-items:center; gap:10px;
+    }
+    .nav-brand-icon {
+      width:34px; height:34px; border-radius:10px;
+      background: linear-gradient(135deg,#92610a,#c28a1a);
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.1rem; flex-shrink:0;
+      box-shadow: 0 2px 8px rgba(120,80,0,0.18);
+    }
+    .nav-brand-text {
+      font-size:0.95rem; font-weight:700; color:#5c3d0a; letter-spacing:0.01em; line-height:1.1;
+    }
+    .nav-brand-sub {
+      font-size:0.62rem; color:#9a7030; font-weight:500; letter-spacing:0.06em; text-transform:uppercase;
+    }
+    .nav-pill-group {
+      display:flex; align-items:center; gap:5px; flex-wrap:wrap;
+    }
+    .nav-pill {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:5px 12px; border-radius:99px; font-size:0.74rem; font-weight:600;
+      border:none; cursor:pointer; transition:all .15s; white-space:nowrap;
+    }
+    .nav-pill-ghost {
+      background:rgba(120,80,0,0.1); color:#6b4c10;
+      border:1px solid rgba(120,80,0,0.18);
+    }
+    .nav-pill-ghost:hover { background:rgba(120,80,0,0.18); color:#3d2800; }
+    .nav-pill-primary {
+      background: linear-gradient(135deg,#92610a,#c28a1a);
+      color:#fff7e0; border:none;
+      box-shadow: 0 2px 8px rgba(120,80,0,0.22);
+    }
+    .nav-pill-primary:hover { filter:brightness(1.08); }
+    .nav-pill-green  { background:#16a34a; color:#fff; border:none; }
+    .nav-pill-green:hover  { background:#15803d; }
+    .nav-pill-red    { background:#dc2626; color:#fff; border:none; }
+    .nav-pill-red:hover    { background:#b91c1c; }
+    .nav-pill-indigo { background:#4f46e5; color:#fff; border:none; }
+    .nav-pill-indigo:hover { background:#4338ca; }
+    .nav-pill-amber  { background:#d97706; color:#fff; border:none; }
+    .nav-pill-amber:hover  { background:#b45309; }
+
+    .nav-bottom {
+      display:flex; align-items:center; gap:9px; flex-wrap:wrap;
+      padding:6px 16px 7px;
+      background: rgba(120,80,0,0.07);
+    }
+    .nav-check-group {
+      display:flex; align-items:center; gap:10px;
+    }
+    .nav-check-label {
+      display:flex; align-items:center; gap:5px;
+      font-size:0.73rem; color:#6b4c10; cursor:pointer; user-select:none; font-weight:500;
+    }
+    .nav-check-label input[type=checkbox] {
+      accent-color:#92610a; width:13px; height:13px; cursor:pointer;
+    }
+    .nav-check-label:hover { color:#3d2800; }
+    .nav-divider {
+      width:1px; height:18px; background:rgba(120,80,0,0.15); flex-shrink:0;
+    }
+    .nav-select {
+      background:rgba(255,255,255,0.55); color:#5c3d0a;
+      border:1px solid rgba(120,80,0,0.2); border-radius:8px;
+      padding:4px 8px; font-size:0.73rem; cursor:pointer;
+    }
+    .nav-select:focus { outline:none; border-color:#92610a; }
+    .nav-font-btn {
+      width:28px; height:28px; border-radius:8px; border:none; cursor:pointer;
+      background:rgba(120,80,0,0.12); color:#5c3d0a; font-size:0.8rem; font-weight:700;
+      display:inline-flex; align-items:center; justify-content:center; transition:all .15s;
+    }
+    .nav-font-btn:hover { background:rgba(120,80,0,0.22); color:#3d2800; }
+    .nav-delay-group {
+      display:flex; align-items:center; gap:5px; font-size:0.7rem; color:#9a7030;
+    }
+    .nav-delay-group input[type=range] { width:52px; accent-color:#92610a; }
+    .nav-delay-group span { font-family:monospace; color:#6b4c10; min-width:32px; }
     .book {
       margin-top:80px; max-width:1400px;
       margin-left:auto; margin-right:auto;
@@ -195,86 +280,95 @@
   <!-- Toggle header button -->
   <button @click="toggleHeader"
     @mousedown="isButtonHeld=true" @mouseup="isButtonHeld=false"
-    :class="{'opacity-50': isButtonTransparent}"
-    class="fixed z-[999] top-0 left-1/2 -translate-x-1/2 mt-2 w-16 h-16 rounded-full bg-white text-gray-700 shadow-xl flex items-center justify-center transition-opacity duration-300"
+    :class="{'opacity-20': isButtonTransparent}"
+    style="position:fixed;z-index:999;top:6px;right:12px;width:30px;height:30px;border-radius:8px;background:rgba(120,80,0,0.12);border:1px solid rgba(120,80,0,0.2);color:#5c3d0a;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .3s,background .15s;font-size:0.85rem;"
     title="Sembunyikan/Tampilkan Header">
     <span :class="{'rotate-180': !isHeaderVisible}" class="inline-block transition-transform duration-300">☰</span>
   </button>
 
   <!-- Header -->
   <header v-show="isHeaderVisible" class="header-controls transition-all duration-300">
-    <div class="flex items-center justify-between flex-wrap gap-y-2">
 
-      <!-- Kiri: scan, kuis, kunci, kamus -->
-      <div class="flex items-center gap-2 flex-wrap">
-        <button @click="onScanCamera" class="px-3 py-1 rounded-lg bg-red-500 text-white" title="Kamera">📸</button>
-        <button @click="onScanGallery" class="px-3 py-1 rounded-lg bg-amber-500 text-white" title="Galeri">📁</button>
-        <button @click="isQuizMode = !isQuizMode" class="px-3 py-1 rounded bg-indigo-600 text-white">
-          {{ isQuizMode ? 'Keluar Mode Kuis' : 'Mode Kuis' }}
-        </button>
-        <input id="ocr-upload-camera" type="file" accept="image/*" capture="environment" class="hidden" @change="handleImageUpload">
-        <input id="ocr-upload-gallery" type="file" accept="image/*" class="hidden" @change="handleImageUpload">
-        <button @click="openApiKeyModal" class="p-1.5 rounded-full">🔑</button>
-        <button @click="showDictionary=true; closeBubble();" class="px-2 py-1 rounded bg-green-600 text-white text-sm">📚 Kamus</button>
+    <!-- Baris 1: Brand + Aksi utama -->
+    <div class="nav-top">
+      <!-- Brand -->
+      <div class="nav-brand">
+        <div class="nav-brand-icon">📖</div>
+        <div>
+          <div class="nav-brand-text">BacaKitab</div>
+          <div class="nav-brand-sub">TAFSIR AS-SADI</div>
+        </div>
       </div>
 
-      <!-- Tengah: harokat, arti, load, baca -->
-      <div class="flex items-center gap-3 flex-wrap">
-        <label class="flex items-center gap-1 text-sm"><input type="checkbox" v-model="showArabic"> Harokat</label>
-        <label class="flex items-center gap-1 text-sm"><input type="checkbox" v-model="showMeaning"> Arti</label>
-        <label class="flex items-center gap-1 text-sm"><input type="checkbox" v-model="showNahwu"> Nahwu</label>
-        <button @click="showLoadPageModal=true" class="px-3 py-1 rounded-lg bg-blue-600 text-white text-sm">Load Data</button>
-
-        <!-- Tombol Baca / Stop -->
+      <!-- Aksi utama -->
+      <div class="nav-pill-group">
+        <button @click="showLoadPageModal=true" class="nav-pill nav-pill-primary">
+          ﷽ Buka Ayat
+        </button>
         <template v-if="!isSpeaking">
           <button @click="startReading(dataAwal, 0)" :disabled="dataAwal.length===0"
-            class="px-3 py-1 rounded-lg bg-green-600 text-white text-sm disabled:opacity-40">▶ Baca</button>
+            class="nav-pill nav-pill-green" style="opacity: dataAwal.length===0 ? 0.4 : 1">
+            ▶ Baca
+          </button>
         </template>
         <template v-else>
-          <button @click="stopReading" class="px-3 py-1 rounded-lg bg-red-500 text-white text-sm">⏹ Stop</button>
+          <button @click="stopReading" class="nav-pill nav-pill-red">⏹ Stop</button>
         </template>
-
-        <!-- Pilih mode baca -->
-        <select v-model="readMode" class="text-sm rounded border px-1 py-1">
-          <option value="arab-arti">Arab + Arti</option>
-          <option value="arab">Arab saja</option>
-          <option value="arti">Arti saja</option>
-          <option value="latin-arti">Latin + Arti</option>
-          <option value="arab-latin-arti">Arab + Latin + Arti</option>
-          <option value="latin">Latin saja</option>
-        </select>
-
-        <!-- Kecepatan suara -->
-        <select v-model.number="readingSpeed" class="text-sm rounded border px-1 py-1">
-          <option :value="0.75">0.75×</option>
-          <option :value="1">1×</option>
-          <option :value="1.25">1.25×</option>
-          <option :value="1.5">1.5×</option>
-        </select>
-
-        <!-- Jeda antar kata -->
-        <label class="flex items-center gap-1 text-xs text-gray-600">
-          Jeda kata:
-          <input type="range" v-model.number="readingDelayWord"
-            min="0" max="3000" step="100"
-            class="w-20 accent-green-600">
-          <span class="w-10 text-right font-mono">{{ readingDelayWord }}ms</span>
-        </label>
-
-        <!-- Jeda antar segmen -->
-        <label class="flex items-center gap-1 text-xs text-gray-600">
-          Jeda segmen:
-          <input type="range" v-model.number="readingDelaySegment"
-            min="0" max="2000" step="100"
-            class="w-20 accent-indigo-600">
-          <span class="w-10 text-right font-mono">{{ readingDelaySegment }}ms</span>
-        </label>
+        <button @click="showDictionary=true; closeBubble();" class="nav-pill nav-pill-ghost">📚 Kamus</button>
+        <button @click="isQuizMode = !isQuizMode" class="nav-pill nav-pill-indigo">
+          {{ isQuizMode ? '✕ Kuis' : '🎯 Kuis' }}
+        </button>
+        <button @click="onScanCamera" class="nav-pill nav-pill-red" title="Scan Kamera">📸</button>
+        <button @click="onScanGallery" class="nav-pill nav-pill-amber" title="Scan Galeri">📁</button>
+        <button @click="openApiKeyModal" class="nav-pill nav-pill-ghost" title="API Key">🔑</button>
       </div>
+      <input id="ocr-upload-camera" type="file" accept="image/*" capture="environment" class="hidden" @change="handleImageUpload">
+      <input id="ocr-upload-gallery" type="file" accept="image/*" class="hidden" @change="handleImageUpload">
+    </div>
 
-      <!-- Kanan: font -->
-      <div class="flex items-center gap-2">
-        <button @click="changeFontSize(2)"  class="px-2 py-1 rounded bg-gray-200">A+</button>
-        <button @click="changeFontSize(-2)" class="px-2 py-1 rounded bg-gray-200">A-</button>
+    <!-- Baris 2: Kontrol tampilan & suara -->
+    <div class="nav-bottom">
+      <!-- Toggle tampilan -->
+      <div class="nav-check-group">
+        <label class="nav-check-label"><input type="checkbox" v-model="showArabic"> Harokat</label>
+        <label class="nav-check-label"><input type="checkbox" v-model="showMeaning"> Arti</label>
+        <label class="nav-check-label"><input type="checkbox" v-model="showNahwu"> Nahwu</label>
+      </div>
+      <div class="nav-divider"></div>
+      <!-- Mode baca -->
+      <select v-model="readMode" class="nav-select">
+        <option value="arab-arti">Arab + Arti</option>
+        <option value="arab">Arab saja</option>
+        <option value="arti">Arti saja</option>
+        <option value="latin-arti">Latin + Arti</option>
+        <option value="arab-latin-arti">Arab + Latin + Arti</option>
+        <option value="latin">Latin saja</option>
+      </select>
+      <!-- Kecepatan -->
+      <select v-model.number="readingSpeed" class="nav-select">
+        <option :value="0.75">0.75×</option>
+        <option :value="1">1×</option>
+        <option :value="1.25">1.25×</option>
+        <option :value="1.5">1.5×</option>
+      </select>
+      <div class="nav-divider"></div>
+      <!-- Jeda kata -->
+      <div class="nav-delay-group">
+        <span>⏱ kata</span>
+        <input type="range" v-model.number="readingDelayWord" min="0" max="3000" step="100">
+        <span>{{ readingDelayWord }}ms</span>
+      </div>
+      <!-- Jeda segmen -->
+      <div class="nav-delay-group">
+        <span>segmen</span>
+        <input type="range" v-model.number="readingDelaySegment" min="0" max="2000" step="100">
+        <span>{{ readingDelaySegment }}ms</span>
+      </div>
+      <div class="nav-divider"></div>
+      <!-- Font size -->
+      <div style="display:flex;align-items:center;gap:4px;">
+        <button @click="changeFontSize(2)"  class="nav-font-btn">A+</button>
+        <button @click="changeFontSize(-2)" class="nav-font-btn">A−</button>
       </div>
     </div>
   </header>
@@ -298,7 +392,7 @@
   </div>
 
   <!-- ===================== LOAD PAGE MODAL ===================== -->
-  <div v-if="showLoadPageModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+  <div v-if="showLoadPageModal" class="fixed inset-0 z-[9000] flex items-center justify-center bg-black bg-opacity-60">
     <div class="bg-white w-[92%] max-w-sm p-4 rounded-lg max-h-[70vh] overflow-auto">
       <div class="flex justify-between items-center mb-3">
         <h3 class="text-lg font-bold">Kitab Tafsir As Sadi</h3>
@@ -306,11 +400,23 @@
       </div>
       <p v-if="loading" class="text-center text-yellow-600 font-semibold text-sm">⏳ Sedang request data...</p>
       <div class="pt-2">
-        <label class="block text-sm font-medium text-gray-700">Nomor Halaman:</label>
-        <input type="text" v-model.number="noHalaman" placeholder="mulai halaman 39" :disabled="loading"
-          class="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-indigo-200 mt-1">
-        <div class="flex justify-end pt-2">
-          <button @click="_doInsert" :disabled="!noHalaman || loading"
+        <label class="block text-sm font-medium text-gray-700">Kode Halaman:</label>
+        <p class="text-xs text-gray-400 mt-0.5 mb-1">Format 6 digit: <span class="font-mono font-semibold text-gray-600">002151</span> &mdash; 3 digit awal = nomor surat, 3 digit akhir = nomor ayat</p>
+        <input type="text" v-model="noHalaman" inputmode="numeric" maxlength="6" placeholder="contoh: 002151" :disabled="loading"
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-indigo-200 mt-1 font-mono tracking-widest text-lg text-center">
+        <!-- Preview live surat & ayat -->
+        <div v-if="noHalaman && String(noHalaman).length > 0" class="mt-2 flex gap-2 justify-center">
+          <div class="flex-1 rounded-lg px-3 py-2 text-center" style="background:#eff6ff;border:1px solid #bfdbfe">
+            <div class="text-xs text-blue-500 font-semibold">Surat ke</div>
+            <div class="text-2xl font-bold text-blue-700 font-mono">{{ String(noHalaman).length >= 3 ? Number(String(noHalaman).slice(0,3)) : '?' }}</div>
+          </div>
+          <div class="flex-1 rounded-lg px-3 py-2 text-center" style="background:#f0fdf4;border:1px solid #bbf7d0">
+            <div class="text-xs text-green-500 font-semibold">Ayat ke</div>
+            <div class="text-2xl font-bold text-green-700 font-mono">{{ String(noHalaman).length === 6 ? Number(String(noHalaman).slice(3,6)) : '?' }}</div>
+          </div>
+        </div>
+        <div class="flex justify-end pt-3">
+          <button @click="_doInsert" :disabled="!noHalaman || String(noHalaman).length !== 6 || loading"
             class="px-4 py-2 font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition disabled:opacity-40">
             Muat Halaman
           </button>
@@ -635,10 +741,10 @@
   <!-- ===================== MAIN: MODE NORMAL ===================== -->
   <br>
   <div v-if="!isQuizMode" class="book">
-    <div v-if="currentHal" class="hal-sticky">
+    <div v-if="currentSuratAyat" class="hal-sticky">
       <span class="inline-block px-4 py-1 rounded-full text-sm font-semibold"
         style="background:#f4e2a3;color:#78350f;border:1px solid #d97706;letter-spacing:0.05em">
-        📖 Halaman {{ currentHal }}
+        📖 Surat {{ currentSuratAyat.surat }} &nbsp;·&nbsp; Ayat {{ currentSuratAyat.ayat }}
       </span>
       <br>
     </div>
@@ -676,10 +782,10 @@
 
 <!-- ===================== MAIN: MODE KUIS ===================== -->
   <div v-if="isQuizMode" class="book">
-    <div v-if="currentHal" class="hal-sticky">
+    <div v-if="currentSuratAyat" class="hal-sticky">
       <span class="inline-block px-4 py-1 rounded-full text-sm font-semibold"
         style="background:#f4e2a3;color:#78350f;border:1px solid #d97706;letter-spacing:0.05em">
-        📖 Halaman {{ currentHal }}
+        📖 Surat {{ currentSuratAyat.surat }} &nbsp;·&nbsp; Ayat {{ currentSuratAyat.ayat }}
       </span>
       
     </div>
@@ -922,6 +1028,15 @@
         if (pages.length === 1) return String(pages[0]);
         return pages[0] + '–' + pages[pages.length - 1];
       },
+      currentSuratAyat() {
+        const pages = [...new Set(this.dataAwal.filter(i => i.hal).map(i => i.hal))];
+        if (!pages.length) return null;
+        const parse = v => { const s = String(v).padStart(6,'0'); return { surat: Number(s.slice(0,3)), ayat: Number(s.slice(3,6)) }; };
+        const first = parse(pages[0]);
+        if (pages.length === 1) return first;
+        const last = parse(pages[pages.length - 1]);
+        return { surat: first.surat, ayat: first.ayat === last.ayat ? first.ayat : first.ayat + '–' + last.ayat };
+      },
       sortedDictionary() {
         return this.myDictionary.slice().sort((a, b) => {
           if (this.dictionarySortDir === 'most-wrong')
@@ -1007,7 +1122,7 @@
       async _doInsert() {
         this.loading = true;
         const now  = this._now();
-        const data = encodeURIComponent(JSON.stringify({ no: now.ts, tanggal: now.date, waktu: now.time, noHalaman: Number(this.noHalaman) }));
+        const data = encodeURIComponent(JSON.stringify({ no: now.ts, tanggal: now.date, waktu: now.time, noHalaman: "'" + String(this.noHalaman) }));
         const url  = `${this.insertUrlBase}?action=insert&table=request&data=${data}`;
         try {
           const res  = await fetch(url, { method: 'GET' });
@@ -1032,6 +1147,16 @@
           let parsed;
           try { parsed = JSON.parse(text); } catch(e) { console.warn('bukan JSON'); return; }
           const arr = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.data) ? parsed.data : null);
+          if (!arr || arr.length === 0) {
+            const surat = String(this.noHalaman || '').padStart(6,'0').slice(0,3);
+            const ayat  = String(this.noHalaman || '').padStart(6,'0').slice(3,6);
+            this.showLoadPageModal = true;
+            this.showToastNotification(
+              `Maaf, Surat ${Number(surat)} Ayat ${Number(ayat)} belum tersedia dalam database. Coba surat/ayat lain ya 🙏`,
+              'red'
+            );
+            return;
+          }
           if (arr) {
             this.dataFetch = arr;
             this.dataAwal  = arr;
@@ -1043,7 +1168,9 @@
               localStorage.setItem(NAHWU_STORAGE_KEY, JSON.stringify(arr));
               localStorage.removeItem(QUIZ_STATE_KEY); // hapus progress lama
             } catch(e) { console.warn('localStorage penuh:', e); }
-            this.showToastNotification(`${arr.length} kata dimuat & disimpan.`, 'green');
+            const surat = String(this.noHalaman || '').padStart(6,'0').slice(0,3);
+            const ayat  = String(this.noHalaman || '').padStart(6,'0').slice(3,6);
+            this.showToastNotification(`✅ Surat ${Number(surat)} Ayat ${Number(ayat)} berhasil dimuat — ${arr.length} kata.`, 'green');
           }
         } catch(e) {
           this.showToastNotification('Gagal memuat: ' + e.message, 'red');
@@ -1157,18 +1284,41 @@
         this._speakNext();
       },
 
-      // Speak satu utterance — pakai polling sebagai fallback Android
-      // Android Chrome sering tidak memanggil onend, jadi kita poll sampai selesai
-      _speakOne(text, onDone) {
+      // Muat voices — tunggu sampai tersedia (penting untuk Android)
+      _loadVoices() {
+        return new Promise((resolve) => {
+          const voices = window.speechSynthesis.getVoices();
+          if (voices.length > 0) { resolve(voices); return; }
+          window.speechSynthesis.onvoiceschanged = () => resolve(window.speechSynthesis.getVoices());
+          setTimeout(() => resolve(window.speechSynthesis.getVoices()), 1000);
+        });
+      },
+
+      // Pilih voice Indonesia terbaik dari daftar yang tersedia
+      _findVoice(voices) {
+        const priority = [
+          v => v.lang === 'id-ID',
+          v => v.lang && v.lang.toLowerCase().startsWith('id'),
+          v => v.name && v.name.toLowerCase().includes('indonesia'),
+          v => v.name && v.name.toLowerCase().includes('id'),
+        ];
+        for (const test of priority) {
+          const found = voices.find(test);
+          if (found) return found;
+        }
+        return voices.length > 0 ? voices[0] : null;
+      },
+
+      // Speak satu utterance — async voice loading + polling fallback Android
+      async _speakOne(text, onDone) {
         if (!text || !text.trim() || !this.isSpeaking) { onDone(); return; }
 
-        const voices  = window.speechSynthesis.getVoices();
-        const idVoice = voices.find(v => v.lang === 'id-ID')
-                     || voices.find(v => v.lang && v.lang.startsWith('id'))
-                     || (voices.length ? voices[0] : null);
+        // Tunggu voices siap (kritis di Android)
+        const voices  = await this._loadVoices();
+        const idVoice = this._findVoice(voices);
 
         const u    = new SpeechSynthesisUtterance(text);
-        u.lang     = 'id-ID';
+        u.lang     = idVoice ? idVoice.lang : 'id-ID';
         u.rate     = this.readingSpeed;
         u.pitch    = 1;
         u.volume   = 1;
@@ -1187,16 +1337,27 @@
         u.onend   = finish;
         u.onerror = finish;
 
-        window.speechSynthesis.speak(u);
+        // Cancel dulu sebelum speak — cegah queue stuck di Android
+        window.speechSynthesis.cancel();
 
-        // Polling fallback: cek setiap 250ms apakah synthesis sudah idle
-        // Diperlukan karena Android Chrome sering tidak trigger onend
+        // Delay 50ms sebelum speak — trick agar Android tidak silent
+        setTimeout(() => {
+          try {
+            window.speechSynthesis.speak(u);
+          } catch(e) {
+            console.warn('speak error:', e);
+            finish();
+          }
+        }, 50);
+
+        // Polling fallback: cek setiap 300ms apakah synthesis sudah idle
+        // Android Chrome sering tidak trigger onend
         pollId = setInterval(() => {
           if (!this.isSpeaking) { clearInterval(pollId); window.speechSynthesis.cancel(); return; }
           if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
             finish();
           }
-        }, 250);
+        }, 300);
       },
 
       _speakNext() {
@@ -1249,13 +1410,15 @@
         // Hapus segmen kosong
         segments = segments.filter(s => s && s.trim());
 
-        // Baca segmen satu per satu secara rekursif
-        const speakChain = (idx) => {
+        // Baca segmen satu per satu secara rekursif (async-safe)
+        const speakChain = async (idx) => {
           if (idx >= segments.length || !this.isSpeaking) { next(); return; }
-          this._speakOne(segments[idx], () => {
-            // Jeda antar segmen sesuai setting
-            setTimeout(() => speakChain(idx + 1), this.readingDelaySegment);
+          await new Promise(resolve => {
+            this._speakOne(segments[idx], () => {
+              setTimeout(resolve, this.readingDelaySegment);
+            });
           });
+          speakChain(idx + 1);
         };
 
         speakChain(0);
