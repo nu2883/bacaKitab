@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="BacaKitab">
   <meta name="theme-color" content="#92610a">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Pembaca Arab Interaktif</title>
 
@@ -364,7 +364,7 @@
         <label class="nav-check-label"><input type="checkbox" v-model="showArabic"> Harokat</label>
         <label class="nav-check-label"><input type="checkbox" v-model="showMeaning"> Arti</label>
         <label class="nav-check-label"><input type="checkbox" v-model="showNahwu"> Nahwu</label>
-        <label class="nav-check-label"><input type="checkbox" v-model="showNahwuColor"> Warna</label>
+        <label class="nav-check-label"><input type="checkbox" v-model="showNahwuColor"> 🎨 Warna</label>
       </div>
       <div class="nav-divider"></div>
       <!-- Mode baca -->
@@ -2216,7 +2216,7 @@ Teks Arab yang dianalisis:
     // ---- Register Service Worker ----
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/bacakitab/sw.js', { scope: '/bacakitab/' })
+        navigator.serviceWorker.register('/bacaKitab/sw.js', { scope: '/bacaKitab/' })
           .then(reg => {
             console.log('[SW] Registered, scope:', reg.scope);
             // Cek update SW tersedia
