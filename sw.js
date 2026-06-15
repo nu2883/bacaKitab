@@ -3,7 +3,7 @@
 // Strategy: Cache First untuk asset statis, Network First untuk GAS API
 // ============================================================
 
-const CACHE_NAME    = 'bacakitab-v1';
+const CACHE_NAME    = 'bacakitab-v3';
 const SCOPE         = '/bacaKitab/';
 
 // Asset yang di-cache saat install (app shell)
