@@ -4,12 +4,13 @@
 // ============================================================
 
 const CACHE_NAME    = 'bacakitab-v1';
-const SCOPE         = '/bacakitab/';
+const SCOPE         = '/bacaKitab/';
 
 // Asset yang di-cache saat install (app shell)
 const PRECACHE_URLS = [
-  '/bacakitab/bacaKitab.html',
-  '/bacakitab/manifest.json',
+  '/bacaKitab/',
+  '/bacaKitab/index.html',
+  '/bacaKitab/manifest.json',
   // CDN fonts & libraries
   'https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap',
 ];
@@ -70,7 +71,7 @@ self.addEventListener('fetch', event => {
   }
 
   // 3. File app (HTML, JS, CSS, ikon) → Cache First
-  if (url.pathname.startsWith(SCOPE)) {
+  if (url.pathname.startsWith('/bacaKitab/')) {
     event.respondWith(
       caches.match(event.request).then(cached => {
         if (cached) return cached;
