@@ -3,6 +3,13 @@
 
 <head>
   <meta charset="utf-8" />
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="BacaKitab">
+  <meta name="theme-color" content="#92610a">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Pembaca Arab Interaktif</title>
 
@@ -1122,6 +1129,7 @@
         showMeaning: true,
         showNahwu: false,
         showNahwuColor: false,
+        pwaInstallPrompt: null,
 
         // TTS state
         isSpeaking:         false,
@@ -1625,6 +1633,16 @@
       // dipanggil saat user mengubah kecepatan lewat reading bar
       changeSpeedLive() {
         // langsung berlaku di utterance berikutnya (tidak perlu restart)
+      },
+
+      /* ---- PWA Install ---- */
+      pwaDoInstall() {
+        if (!this.pwaInstallPrompt) return;
+        this.pwaInstallPrompt.prompt();
+        this.pwaInstallPrompt.userChoice.then(result => {
+          console.log('[PWA] Install choice:', result.outcome);
+          this.pwaInstallPrompt = null;
+        });
       },
 
       /* ---- Warna Nahwu ---- */
@@ -2150,6 +2168,16 @@ Teks Arab yang dianalisis:
       } catch(e) {}
       if (this.isApiKeySet) this.initGeminiClient();
 
+      // PWA install prompt
+      window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault();
+        this.pwaInstallPrompt = e;
+      });
+      window.addEventListener('appinstalled', () => {
+        this.pwaInstallPrompt = null;
+        this.showToastNotification('✅ BacaKitab berhasil diinstall!', 'green');
+      });
+
       // pastikan voices sudah ready — Android perlu onvoiceschanged
       if (window.speechSynthesis) {
         window.speechSynthesis.getVoices();
@@ -2164,5 +2192,46 @@ Teks Arab yang dianalisis:
   });
 })();
 </script>
+  <!-- ===== PWA: Service Worker + Install Prompt ===== -->
+  <div v-if="pwaInstallPrompt" 
+    style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;
+           background:#fff7e0;border:2px solid #c28a1a;border-radius:16px;
+           padding:14px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.18);
+           display:flex;align-items:center;gap:12px;max-width:340px;width:90%">
+    <span style="font-size:1.6rem">📖</span>
+    <div style="flex:1">
+      <div style="font-weight:700;color:#5c3d0a;font-size:0.85rem">Install BacaKitab</div>
+      <div style="font-size:0.72rem;color:#9a7030;margin-top:2px">Akses cepat dari homescreen, bisa offline</div>
+    </div>
+    <button @click="pwaDoInstall()"
+      style="background:linear-gradient(135deg,#92610a,#c28a1a);color:#fff7e0;border:none;
+             border-radius:8px;padding:7px 14px;font-size:0.78rem;font-weight:700;cursor:pointer">
+      Install
+    </button>
+    <button @click="pwaInstallPrompt=null"
+      style="background:none;border:none;color:#9a7030;font-size:1.1rem;cursor:pointer;padding:4px">✕</button>
+  </div>
+
+  <script>
+    // ---- Register Service Worker ----
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/bacakitab/sw.js', { scope: '/bacakitab/' })
+          .then(reg => {
+            console.log('[SW] Registered, scope:', reg.scope);
+            // Cek update SW tersedia
+            reg.addEventListener('updatefound', () => {
+              const newSW = reg.installing;
+              newSW.addEventListener('statechange', () => {
+                if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('[SW] Update tersedia — refresh untuk update.');
+                }
+              });
+            });
+          })
+          .catch(err => console.warn('[SW] Gagal register:', err));
+      });
+    }
+  </script>
 </body>
 </html>
