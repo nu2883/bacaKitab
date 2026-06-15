@@ -1,0 +1,35 @@
+{
+  "name": "BacaKitab - Tafsir As-Sadi",
+  "short_name": "BacaKitab",
+  "description": "Aplikasi baca & belajar teks Arab dengan analisis Nahwu",
+  "start_url": "/bacakitab/bacaKitab.html",
+  "scope": "/bacakitab/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4e2a3",
+  "theme_color": "#92610a",
+  "lang": "id",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "books"],
+  "shortcuts": [
+    {
+      "name": "Buka Ayat",
+      "short_name": "Buka",
+      "description": "Load ayat dari database",
+      "url": "/bacakitab/bacaKitab.html"
+    }
+  ]
+}
