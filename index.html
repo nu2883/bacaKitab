@@ -155,7 +155,7 @@
     /* ---- Reading bar — modern ---- */
     .reading-bar {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
-      background: rgba(15, 23, 42, 0.97);
+      background: rgba(30, 41, 59, 0.96);
       backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       color: #f8fafc; padding: 10px 16px 14px;
       box-shadow: 0 -2px 24px rgba(0,0,0,0.4);
@@ -165,15 +165,17 @@
       display: flex; align-items: center; gap: 10px; min-width: 0;
     }
     .reading-bar .arab-now {
-      font-family: 'Amiri', serif; font-size: 1.5rem; direction: rtl; line-height: 1.2;
+      font-family: 'Amiri', serif; direction: rtl; line-height: 1.3;
+      color: #fde68a; flex-shrink: 0;
     }
     .reading-bar .arti-now {
-      font-size: 0.82rem; color: #94a3b8;
       flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      color: #e2e8f0; font-weight: 500;
     }
     .reading-bar .progress-pill {
-      font-size: 0.7rem; background: #1e293b; color: #64748b;
+      font-size: 0.7rem; background: #334155; color: #94a3b8;
       padding: 2px 8px; border-radius: 99px; white-space: nowrap; flex-shrink: 0;
+      border: 1px solid #475569;
     }
     .reading-bar .rb-controls {
       display: flex; align-items: center; gap: 7px;
@@ -186,23 +188,22 @@
     }
     .reading-bar .rb-btn:active { transform: scale(0.9); }
     .reading-bar .rb-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-    .reading-bar .rb-btn-prev  { background: #334155; color: #cbd5e1; }
+    .reading-bar .rb-btn-prev  { background: #475569; color: #e2e8f0; }
     .reading-bar .rb-btn-play  { background: #22c55e; color: #fff; width:42px; height:42px; font-size:1.15rem; }
     .reading-bar .rb-btn-pause { background: #f59e0b; color: #fff; width:42px; height:42px; font-size:1.15rem; }
     .reading-bar .rb-btn-stop  { background: #ef4444; color: #fff; }
-    .reading-bar .rb-btn-skip  { background: #334155; color: #cbd5e1; }
-    .reading-bar .rb-divider   { width:1px; height:26px; background:#334155; flex-shrink:0; margin:0 2px; }
+    .reading-bar .rb-btn-skip  { background: #475569; color: #e2e8f0; }
+    .reading-bar .rb-divider   { width:1px; height:26px; background:#475569; flex-shrink:0; margin:0 2px; }
     .reading-bar select {
       padding: 4px 6px; border-radius: 8px;
-      background: #1e293b; color: #94a3b8; border: 1px solid #334155; font-size: 0.75rem;
+      background: #334155; color: #e2e8f0; border: 1px solid #475569; font-size: 0.75rem;
     }
     .reading-bar .rb-delay {
       display: flex; align-items: center; gap: 4px;
-      font-size: 0.7rem; color: #64748b;
+      font-size: 0.7rem; color: #94a3b8;
     }
     .reading-bar .rb-delay input[type=range] { width: 58px; accent-color: #22c55e; }
-    .reading-bar .rb-delay span { font-family: monospace; min-width: 34px; color: #94a3b8; }
-
+    .reading-bar .rb-delay span { font-family: monospace; min-width: 34px; color: #e2e8f0; }
     .reading-bar .rb-btn-bookmark {
       flex-shrink: 0; border: none; cursor: pointer;
       border-radius: 10px; font-size: 1.1rem;
@@ -211,8 +212,8 @@
       transition: transform .1s, background .15s;
     }
     .reading-bar .rb-btn-bookmark:active { transform: scale(0.88); }
-    .reading-bar .rb-btn-save  { background: #0f172a; border: 1.5px solid #334155; color: #f8fafc; }
-    .reading-bar .rb-btn-save:hover { background: #1e293b; border-color: #22c55e; }
+    .reading-bar .rb-btn-save  { background: #334155; border: 1.5px solid #475569; color: #f8fafc; }
+    .reading-bar .rb-btn-save:hover { background: #475569; border-color: #22c55e; }
     .reading-bar .rb-btn-saved { background: #14532d; border: 1.5px solid #22c55e; color: #86efac; cursor: default; }
     .mini-resume-bar {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 190;
@@ -364,7 +365,7 @@
         <label class="nav-check-label"><input type="checkbox" v-model="showArabic"> Harokat</label>
         <label class="nav-check-label"><input type="checkbox" v-model="showMeaning"> Arti</label>
         <label class="nav-check-label"><input type="checkbox" v-model="showNahwu"> Nahwu</label>
-        <label class="nav-check-label"><input type="checkbox" v-model="showNahwuColor"> Warna</label>
+        <label class="nav-check-label"><input type="checkbox" v-model="showNahwuColor">  Warna</label>
       </div>
       <div class="nav-divider"></div>
       <!-- Mode baca -->
@@ -1010,23 +1011,22 @@
 
     <!-- Baris atas: kata + arti + tombol simpan + progress -->
     <div class="rb-word-row">
-      <span class="arab-now">{{ currentReadingItem ? (currentReadingItem.arab || currentReadingItem.noHarokat) : '' }}</span>
-      <div style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;overflow:hidden">
-        <span class="arti-now" v-if="isPaused" style="color:#fbbf24">⏸ Dijeda</span>
-        <span class="arti-now" v-else>{{ currentReadingItem ? currentReadingItem.arti : '' }}</span>
+      <span class="arab-now" :style="{ fontSize: fontSizeArabic + 'px' }">{{ currentReadingItem ? (currentReadingItem.arab || currentReadingItem.noHarokat) : '' }}</span>
+      <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;overflow:hidden">
+        <span class="arti-now" :style="{ fontSize: fontSizeMeaning + 'px' }" v-if="isPaused" style="color:#fbbf24">⏸ Dijeda</span>
+        <span class="arti-now" :style="{ fontSize: fontSizeMeaning + 'px' }" v-else>{{ currentReadingItem ? currentReadingItem.arti : '' }}</span>
         <span v-if="currentReadingItem && currentReadingItem.kedudukan"
-          style="font-size:0.68rem;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+          :style="{ fontSize: Math.max(10, fontSizeMeaning - 2) + 'px' }"
+          style="color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
           {{ currentReadingItem.kedudukan }}
         </span>
       </div>
-      <!-- Tombol simpan ke kamus -->
       <button
         v-if="currentReadingItem"
         @click="saveCurrentWordToDictionary"
         :class="isCurrentWordInDictionary ? 'rb-btn-saved' : 'rb-btn-save'"
         class="rb-btn-bookmark"
-        :title="isCurrentWordInDictionary ? 'Sudah di kamus' : 'Simpan ke kamus'"
-      >
+        :title="isCurrentWordInDictionary ? 'Sudah di kamus' : 'Simpan ke kamus'">
         {{ isCurrentWordInDictionary ? '✅' : '📌' }}
       </button>
       <span class="progress-pill">{{ activeWordIndex != null ? (Number(activeWordIndex)+1) : '?' }} / {{ dataAwal.length }}</span>
@@ -1034,29 +1034,19 @@
 
     <!-- Baris bawah: kontrol + setting -->
     <div class="rb-controls">
-      <!-- Navigasi -->
       <button class="rb-btn rb-btn-prev" @click="skipReading(-1)" :disabled="isPaused" title="Ulang kata">⏮</button>
-
-      <!-- Pause / Resume / Play -->
       <button v-if="isSpeaking && !isPaused" class="rb-btn rb-btn-pause" @click="pauseReading" title="Jeda">⏸</button>
       <button v-if="isPaused" class="rb-btn rb-btn-play" @click="resumeReading" title="Lanjut">▶</button>
-
       <button class="rb-btn rb-btn-stop" @click="stopReading" title="Berhenti">⏹</button>
       <button class="rb-btn rb-btn-skip" @click="skipReading(1)" :disabled="isPaused" title="Lewati">⏭</button>
-
       <div class="rb-divider"></div>
-
-      <!-- Kecepatan suara -->
       <select v-model.number="readingSpeed">
         <option :value="0.75">0.75×</option>
         <option :value="1">1×</option>
         <option :value="1.25">1.25×</option>
         <option :value="1.5">1.5×</option>
       </select>
-
       <div class="rb-divider"></div>
-
-      <!-- Jeda antar kata -->
       <div class="rb-delay" title="Jeda antar kata">
         ⏱
         <input type="range" v-model.number="readingDelayWord" min="0" max="3000" step="100">
