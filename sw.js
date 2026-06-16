@@ -1,100 +1,2271 @@
-// ============================================================
-// BacaKitab Service Worker
-// Strategy: Cache First untuk asset statis, Network First untuk GAS API
-// ============================================================
+<!doctype html>
+<html lang="id">
 
-const CACHE_NAME    = 'bacakitab-v3';
-const SCOPE         = '/bacaKitab/';
+<head>
+  <meta charset="utf-8" />
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="BacaKitab">
+  <meta name="theme-color" content="#92610a">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pembaca Arab Interaktif</title>
 
-// Asset yang di-cache saat install (app shell)
-const PRECACHE_URLS = [
-  '/bacaKitab/',
-  '/bacaKitab/index.html',
-  '/bacaKitab/manifest.json',
-  // CDN fonts & libraries
-  'https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap',
-];
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 
-// ---- INSTALL: precache app shell ----
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting())
-  );
-});
+  <style>
+    html, body { height:100%; margin:0; padding:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial; }
+    body.light { background:linear-gradient(180deg,#f4e2a3 0%,#f9f1d1 40%,#fdf9e6 100%); color:#2c2a24; }
+    body.dark  { background:#071029; color:#e6eef8; }
 
-// ---- ACTIVATE: hapus cache lama ----
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(key => key !== CACHE_NAME)
-          .map(key => caches.delete(key))
-      )
-    ).then(() => self.clients.claim())
-  );
-});
+    .header-controls {
+      position:fixed; top:0; left:0; right:0;
+      z-index:80;
+      background: linear-gradient(180deg,#f4e2a3 0%,#f0d98a 100%);
+      box-shadow: 0 2px 16px rgba(120,80,0,0.13);
+    }
+    .nav-top {
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 9px 16px;
+      border-bottom: 1px solid rgba(120,80,0,0.12);
+    }
+    .nav-brand {
+      display:flex; align-items:center; gap:10px;
+    }
+    .nav-brand-icon {
+      width:34px; height:34px; border-radius:10px;
+      background: linear-gradient(135deg,#92610a,#c28a1a);
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.1rem; flex-shrink:0;
+      box-shadow: 0 2px 8px rgba(120,80,0,0.18);
+    }
+    .nav-brand-text {
+      font-size:0.95rem; font-weight:700; color:#5c3d0a; letter-spacing:0.01em; line-height:1.1;
+    }
+    .nav-brand-sub {
+      font-size:0.62rem; color:#9a7030; font-weight:500; letter-spacing:0.06em; text-transform:uppercase;
+    }
+    .nav-pill-group {
+      display:flex; align-items:center; gap:5px; flex-wrap:wrap;
+    }
+    .nav-pill {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:5px 12px; border-radius:99px; font-size:0.74rem; font-weight:600;
+      border:none; cursor:pointer; transition:all .15s; white-space:nowrap;
+    }
+    .nav-pill-ghost {
+      background:rgba(120,80,0,0.1); color:#6b4c10;
+      border:1px solid rgba(120,80,0,0.18);
+    }
+    .nav-pill-ghost:hover { background:rgba(120,80,0,0.18); color:#3d2800; }
+    .nav-pill-primary {
+      background: linear-gradient(135deg,#92610a,#c28a1a);
+      color:#fff7e0; border:none;
+      box-shadow: 0 2px 8px rgba(120,80,0,0.22);
+    }
+    .nav-pill-primary:hover { filter:brightness(1.08); }
+    .nav-pill-green  { background:#16a34a; color:#fff; border:none; }
+    .nav-pill-green:hover  { background:#15803d; }
+    .nav-pill-red    { background:#dc2626; color:#fff; border:none; }
+    .nav-pill-red:hover    { background:#b91c1c; }
+    .nav-pill-indigo { background:#4f46e5; color:#fff; border:none; }
+    .nav-pill-indigo:hover { background:#4338ca; }
+    .nav-pill-amber  { background:#d97706; color:#fff; border:none; }
+    .nav-pill-amber:hover  { background:#b45309; }
 
-// ---- FETCH: strategi per tipe request ----
-self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url);
+    .nav-bottom {
+      display:flex; align-items:center; gap:9px; flex-wrap:wrap;
+      padding:6px 16px 7px;
+      background: rgba(120,80,0,0.07);
+    }
+    .nav-check-group {
+      display:flex; align-items:center; gap:10px;
+    }
+    .nav-check-label {
+      display:flex; align-items:center; gap:5px;
+      font-size:0.73rem; color:#6b4c10; cursor:pointer; user-select:none; font-weight:500;
+    }
+    .nav-check-label input[type=checkbox] {
+      accent-color:#92610a; width:13px; height:13px; cursor:pointer;
+    }
+    .nav-check-label:hover { color:#3d2800; }
+    .nav-divider {
+      width:1px; height:18px; background:rgba(120,80,0,0.15); flex-shrink:0;
+    }
+    .nav-select {
+      background:rgba(255,255,255,0.55); color:#5c3d0a;
+      border:1px solid rgba(120,80,0,0.2); border-radius:8px;
+      padding:4px 8px; font-size:0.73rem; cursor:pointer;
+    }
+    .nav-select:focus { outline:none; border-color:#92610a; }
+    .nav-font-btn {
+      width:28px; height:28px; border-radius:8px; border:none; cursor:pointer;
+      background:rgba(120,80,0,0.12); color:#5c3d0a; font-size:0.8rem; font-weight:700;
+      display:inline-flex; align-items:center; justify-content:center; transition:all .15s;
+    }
+    .nav-font-btn:hover { background:rgba(120,80,0,0.22); color:#3d2800; }
+    .nav-delay-group {
+      display:flex; align-items:center; gap:5px; font-size:0.7rem; color:#9a7030;
+    }
+    .nav-delay-group input[type=range] { width:52px; accent-color:#92610a; }
+    .nav-delay-group span { font-family:monospace; color:#6b4c10; min-width:32px; }
+    .book {
+      margin-top:80px; max-width:1400px;
+      margin-left:auto; margin-right:auto;
+      padding:22px; border-radius:10px;
+      background:linear-gradient(180deg,#fff9e5 0%,#fff7d8 100%);
+      box-shadow:0 10px 30px rgba(0,0,0,0.08);
+    }
+    .page-paragraph { direction:rtl; text-align:right; font-family:'Amiri',serif; line-height:1.9; word-break:keep-all; }
+    .arab-word {
+      display:inline-block; margin:0 .4rem .3rem .2rem;
+      padding:.06rem .28rem; border-radius:8px;
+      cursor:pointer; transition:all .12s; user-select:none; position:relative;
+    }
+    .arab-word:hover { transform:translateY(-2px); background:rgba(34,197,94,0.06); }
+    .arab-word.is-reading { background:rgba(34,197,94,0.18); font-weight:700; }
+    .arab-word.is-paused  { background:rgba(251,191,36,0.28) !important; outline:2px solid #fbbf24; border-radius:6px; }
 
-  // 1. GAS API (script.google.com) → Network First, jangan cache
-  if (url.hostname.includes('script.google.com')) {
-    event.respondWith(
-      fetch(event.request)
-        .catch(() => new Response(
-          JSON.stringify({ error: 'Offline: tidak dapat terhubung ke server.' }),
-          { headers: { 'Content-Type': 'application/json' } }
-        ))
-    );
-    return;
-  }
+    #loading-overlay {
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background:rgba(0,0,0,0.6); z-index:9999; color:#fff;
+      flex-direction:column; gap:12px; visibility:hidden; opacity:0; transition:opacity .18s;
+    }
+    #loading-overlay.show { visibility:visible; opacity:1; }
+    .loader {
+      border:4px solid #f3f3f3; border-top:4px solid #3498db;
+      border-radius:50%; width:48px; height:48px;
+      animation:spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
 
-  // 2. Font Google → Cache First (stale-while-revalidate)
-  if (url.hostname.includes('fonts.googleapis.com') ||
-      url.hostname.includes('fonts.gstatic.com')) {
-    event.respondWith(
-      caches.open(CACHE_NAME).then(cache =>
-        cache.match(event.request).then(cached => {
-          const network = fetch(event.request).then(response => {
-            cache.put(event.request, response.clone());
-            return response;
-          });
-          return cached || network;
-        })
-      )
-    );
-    return;
-  }
+    .bubble-dialog-fixed {
+      position:fixed; top:70px; left:50%; transform:translateX(-50%);
+      z-index:999; width:90%; max-width:520px;
+      background:#fff; border-radius:12px; padding:14px 18px;
+      box-shadow:0 8px 30px rgba(0,0,0,0.15);
+    }
+    body.dark .bubble-dialog-fixed { background:#0b1220; color:#e6eef8; }
 
-  // 3. File app (HTML, JS, CSS, ikon) → Cache First
-  if (url.pathname.startsWith('/bacaKitab/')) {
-    event.respondWith(
-      caches.match(event.request).then(cached => {
-        if (cached) return cached;
-        return fetch(event.request).then(response => {
-          // Hanya cache response yang valid
-          if (response && response.status === 200 && response.type === 'basic') {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-          }
-          return response;
+    /* ---- Reading bar — modern ---- */
+    .reading-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      background: rgba(15, 23, 42, 0.97);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      color: #f8fafc; padding: 10px 16px 14px;
+      box-shadow: 0 -2px 24px rgba(0,0,0,0.4);
+      display: flex; flex-direction: column; gap: 7px;
+    }
+    .reading-bar .rb-word-row {
+      display: flex; align-items: center; gap: 10px; min-width: 0;
+    }
+    .reading-bar .arab-now {
+      font-family: 'Amiri', serif; font-size: 1.5rem; direction: rtl; line-height: 1.2;
+    }
+    .reading-bar .arti-now {
+      font-size: 0.82rem; color: #94a3b8;
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .reading-bar .progress-pill {
+      font-size: 0.7rem; background: #1e293b; color: #64748b;
+      padding: 2px 8px; border-radius: 99px; white-space: nowrap; flex-shrink: 0;
+    }
+    .reading-bar .rb-controls {
+      display: flex; align-items: center; gap: 7px;
+    }
+    .reading-bar .rb-btn {
+      display: flex; align-items: center; justify-content: center;
+      border: none; cursor: pointer; border-radius: 10px;
+      transition: transform .1s, opacity .15s;
+      width: 36px; height: 36px; font-size: 1rem; flex-shrink: 0;
+    }
+    .reading-bar .rb-btn:active { transform: scale(0.9); }
+    .reading-bar .rb-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .reading-bar .rb-btn-prev  { background: #334155; color: #cbd5e1; }
+    .reading-bar .rb-btn-play  { background: #22c55e; color: #fff; width:42px; height:42px; font-size:1.15rem; }
+    .reading-bar .rb-btn-pause { background: #f59e0b; color: #fff; width:42px; height:42px; font-size:1.15rem; }
+    .reading-bar .rb-btn-stop  { background: #ef4444; color: #fff; }
+    .reading-bar .rb-btn-skip  { background: #334155; color: #cbd5e1; }
+    .reading-bar .rb-divider   { width:1px; height:26px; background:#334155; flex-shrink:0; margin:0 2px; }
+    .reading-bar select {
+      padding: 4px 6px; border-radius: 8px;
+      background: #1e293b; color: #94a3b8; border: 1px solid #334155; font-size: 0.75rem;
+    }
+    .reading-bar .rb-delay {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 0.7rem; color: #64748b;
+    }
+    .reading-bar .rb-delay input[type=range] { width: 58px; accent-color: #22c55e; }
+    .reading-bar .rb-delay span { font-family: monospace; min-width: 34px; color: #94a3b8; }
+
+    .reading-bar .rb-btn-bookmark {
+      flex-shrink: 0; border: none; cursor: pointer;
+      border-radius: 10px; font-size: 1.1rem;
+      width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform .1s, background .15s;
+    }
+    .reading-bar .rb-btn-bookmark:active { transform: scale(0.88); }
+    .reading-bar .rb-btn-save  { background: #0f172a; border: 1.5px solid #334155; color: #f8fafc; }
+    .reading-bar .rb-btn-save:hover { background: #1e293b; border-color: #22c55e; }
+    .reading-bar .rb-btn-saved { background: #14532d; border: 1.5px solid #22c55e; color: #86efac; cursor: default; }
+    .mini-resume-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 190;
+      background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);
+      color: #94a3b8; font-size: 0.78rem;
+      padding: 8px 16px; display: flex; align-items: center; gap: 10px;
+    }
+    .mini-resume-bar button {
+      padding: 4px 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.75rem;
+    }
+
+    .toast {
+      position:fixed; top:16px; left:50%; transform:translateX(-50%);
+      display:flex; align-items:center; gap:8px; min-width:100px !important;
+      padding:10px 14px; border-radius:10px; color:#fff; font-weight:700; z-index:3000;
+    }
+    .toast.green  { background:#16a34a; }
+    .toast.red    { background:#ef4444; }
+    .toast.orange { background:#f59e0b; }
+
+    .word-stack {
+      display:inline-flex; flex-direction:column; align-items:center;
+      margin:0 0.35rem 0.6rem 0.35rem; vertical-align:top; line-height:1;
+    }
+    .word-stack .arab-word { display:inline-block; position:relative; padding:0.06rem .28rem; border-radius:6px; font-family:'Amiri',serif; margin-bottom:0; }
+    .word-stack .arab-word:hover { transform:translateY(-2px); }
+    .word-meaning {
+      display:block; line-height:1.05; margin-top:0.28rem; max-width:12ch;
+      text-align:center; direction:ltr; font-family:system-ui,Arial,sans-serif;
+      color:#065f46; background:rgba(255,255,255,0.9); padding:3px 6px;
+      border-radius:6px; box-shadow:0 6px 18px rgba(2,6,23,0.06);
+      word-break:break-word; white-space:normal; pointer-events:none; margin-bottom:0;
+    }
+    .word-meaning.hidden { display:none !important; }
+    .word-meaning:last-child { margin-bottom:25px; }
+    body.dark .word-meaning { color:#d1fae5; background:rgba(7,10,19,0.75); box-shadow:0 6px 18px rgba(2,6,23,0.45); }
+
+    .word-nahwu {
+      display:block; line-height:1.05; margin-top:0.2rem; max-width:14ch;
+      text-align:center; direction:ltr; font-family:system-ui,Arial,sans-serif;
+      color:#14532d; background:#d1fae5; padding:2px 6px;
+      border-radius:5px; box-shadow:0 2px 6px rgba(0,0,0,0.06);
+      word-break:break-word; white-space:normal; pointer-events:none; margin-bottom:25px;
+    }
+    .word-nahwu.hidden { display:none !important; }
+    body.dark .word-nahwu { color:#d1fae5; background:#064e2a; }
+
+    .nahwu-isim  { background: rgba(59,130,246,0.22); border-radius: 5px; box-shadow: inset 0 0 0 1.5px rgba(59,130,246,0.35); }
+    .nahwu-huruf { background: rgba(220,38,38,0.15); border-radius: 5px; box-shadow: inset 0 0 0 1.5px rgba(220,38,38,0.4); }
+    .nahwu-fiil  { background: transparent; }
+    .hal-sticky {
+      position: sticky; top: 0; z-index: 70;
+      text-align: center; padding: 6px 0 4px;
+      background: linear-gradient(180deg,#f9f1d1 80%,rgba(249,241,209,0) 100%);
+    }
+    body.dark .hal-sticky { background: linear-gradient(180deg,#071029 80%,rgba(7,16,41,0) 100%); }
+
+    @media (max-width:480px) {
+      .word-meaning { font-size:.6rem; max-width:10ch; padding:2px 6px; }
+      .word-nahwu   { font-size:.55rem; max-width:10ch; padding:1px 5px; }
+      .word-stack   { margin:0 .25rem .45rem .25rem; }
+    }
+  </style>
+</head>
+
+<body class="light">
+<div id="app">
+
+  <!-- Loading overlay -->
+  <div id="loading-overlay" :class="{ show: loading }" role="status" aria-live="polite">
+    <div class="loader" aria-hidden="true"></div>
+    <div style="font-weight:700">{{ loadingMessage }}</div>
+  </div>
+
+  <!-- Toggle header button -->
+  <button @click="toggleHeader"
+    @mousedown="isButtonHeld=true" @mouseup="isButtonHeld=false"
+    :class="{'opacity-20': isButtonTransparent}"
+    style="position:fixed;z-index:999;top:6px;right:12px;width:30px;height:30px;border-radius:8px;background:rgba(120,80,0,0.12);border:1px solid rgba(120,80,0,0.2);color:#5c3d0a;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .3s,background .15s;font-size:0.85rem;"
+    title="Sembunyikan/Tampilkan Header">
+    <span :class="{'rotate-180': !isHeaderVisible}" class="inline-block transition-transform duration-300">☰</span>
+  </button>
+
+  <!-- PWA Install Banner -->
+  <div v-if="pwaInstallPrompt"
+    style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;
+           background:#fff7e0;border:2px solid #c28a1a;border-radius:16px;
+           padding:14px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.18);
+           display:flex;align-items:center;gap:12px;max-width:340px;width:90%">
+    <span style="font-size:1.6rem">📖</span>
+    <div style="flex:1">
+      <div style="font-weight:700;color:#5c3d0a;font-size:0.85rem">Install BacaKitab</div>
+      <div style="font-size:0.72rem;color:#9a7030;margin-top:2px">Akses cepat dari homescreen, bisa offline</div>
+    </div>
+    <button @click="pwaDoInstall()"
+      style="background:linear-gradient(135deg,#92610a,#c28a1a);color:#fff7e0;border:none;
+             border-radius:8px;padding:7px 14px;font-size:0.78rem;font-weight:700;cursor:pointer">
+      Install
+    </button>
+    <button @click="pwaInstallPrompt=null"
+      style="background:none;border:none;color:#9a7030;font-size:1.2rem;cursor:pointer;padding:4px;line-height:1">✕</button>
+  </div>
+
+  <!-- Header -->
+  <header v-show="isHeaderVisible" class="header-controls transition-all duration-300">
+
+    <!-- Baris 1: Brand + Aksi utama -->
+    <div class="nav-top">
+      <!-- Brand -->
+      <div class="nav-brand">
+        <div class="nav-brand-icon">📖</div>
+        <div>
+          <div class="nav-brand-text">BacaKitab</div>
+          <div class="nav-brand-sub">TAFSIR AS-SADI</div>
+        </div>
+      </div>
+
+      <!-- Aksi utama -->
+      <div class="nav-pill-group">
+        <button @click="showLoadPageModal=true" class="nav-pill nav-pill-primary">
+          ﷽ Buka Ayat
+        </button>
+        <template v-if="!isSpeaking">
+          <button @click="startReading(dataAwal, 0)" :disabled="dataAwal.length===0"
+            class="nav-pill nav-pill-green" style="opacity: dataAwal.length===0 ? 0.4 : 1">
+            ▶ Baca
+          </button>
+        </template>
+        <template v-else>
+          <button @click="stopReading" class="nav-pill nav-pill-red">⏹ Stop</button>
+        </template>
+        <button @click="showDictionary=true; closeBubble();" class="nav-pill nav-pill-ghost">📚 Kamus</button>
+        <button @click="showManualInput=true" class="nav-pill nav-pill-ghost">✍️ Input Manual</button>
+        <button @click="isQuizMode = !isQuizMode" class="nav-pill nav-pill-indigo">
+          {{ isQuizMode ? '✕ Kuis' : '🎯 Kuis' }}
+        </button>
+        <button @click="onScanCamera" class="nav-pill nav-pill-red" title="Scan Kamera">📸</button>
+        <button @click="onScanGallery" class="nav-pill nav-pill-amber" title="Scan Galeri">📁</button>
+        <button @click="openApiKeyModal" class="nav-pill nav-pill-ghost" title="API Key">🔑</button>
+      </div>
+      <input id="ocr-upload-camera" type="file" accept="image/*" capture="environment" class="hidden" @change="handleImageUpload">
+      <input id="ocr-upload-gallery" type="file" accept="image/*" class="hidden" @change="handleImageUpload">
+    </div>
+
+    <!-- Baris 2: Kontrol tampilan & suara -->
+    <div class="nav-bottom">
+      <!-- Toggle tampilan -->
+      <div class="nav-check-group">
+        <label class="nav-check-label"><input type="checkbox" v-model="showArabic"> Harokat</label>
+        <label class="nav-check-label"><input type="checkbox" v-model="showMeaning"> Arti</label>
+        <label class="nav-check-label"><input type="checkbox" v-model="showNahwu"> Nahwu</label>
+        <label class="nav-check-label"><input type="checkbox" v-model="showNahwuColor"> 🎨 Warna</label>
+      </div>
+      <div class="nav-divider"></div>
+      <!-- Mode baca -->
+      <select v-model="readMode" class="nav-select">
+        <option value="arab-arti">Arab + Arti</option>
+        <option value="arab">Arab saja</option>
+        <option value="arti">Arti saja</option>
+        <option value="latin-arti">Latin + Arti</option>
+        <option value="arab-latin-arti">Arab + Latin + Arti</option>
+        <option value="latin">Latin saja</option>
+      </select>
+      <!-- Kecepatan -->
+      <select v-model.number="readingSpeed" class="nav-select">
+        <option :value="0.75">0.75×</option>
+        <option :value="1">1×</option>
+        <option :value="1.25">1.25×</option>
+        <option :value="1.5">1.5×</option>
+      </select>
+      <div class="nav-divider"></div>
+      <!-- Jeda kata -->
+      <div class="nav-delay-group">
+        <span>⏱ kata</span>
+        <input type="range" v-model.number="readingDelayWord" min="0" max="3000" step="100">
+        <span>{{ readingDelayWord }}ms</span>
+      </div>
+      <!-- Jeda segmen -->
+      <div class="nav-delay-group">
+        <span>segmen</span>
+        <input type="range" v-model.number="readingDelaySegment" min="0" max="2000" step="100">
+        <span>{{ readingDelaySegment }}ms</span>
+      </div>
+      <div class="nav-divider"></div>
+      <!-- Font size -->
+      <div style="display:flex;align-items:center;gap:4px;">
+        <button @click="changeFontSize(2)"  class="nav-font-btn">A+</button>
+        <button @click="changeFontSize(-2)" class="nav-font-btn">A−</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================== BUBBLE ===================== -->
+  <div v-if="activeBubble" class="bubble-dialog-fixed" role="dialog" aria-live="polite">
+    <div style="font-family:'Amiri',serif;font-size:2.15rem;text-align:center">
+      {{ activeBubble.item.arab || activeBubble.item }}
+    </div>
+    <div class="mt-3 text-sm">
+      <p><strong>Arti:</strong> {{ activeBubble.item.arti || '(tidak tersedia)' }}</p><br>
+      <p><strong>Kedudukan:</strong> {{ activeBubble.item.kedudukan || '(tidak tersedia)' }}</p>
+    </div>
+    <div class="mt-3 flex gap-2 justify-center flex-wrap">
+      <button @click="addToMyDictionary(activeBubble.item)" class="px-4 py-1 rounded bg-green-600 text-white text-sm">Simpan ke kamus</button>
+      <!-- Baca dari kata yang diklik ini -->
+      <button @click="startReading(dataAwal, Number(clickedWordIndex)); closeBubble();"
+        class="px-4 py-1 rounded bg-indigo-600 text-white text-sm">▶ Baca dari sini</button>
+      <button @click="closeBubble" class="px-4 py-1 rounded bg-red-500 text-white text-sm">Tutup</button>
+    </div>
+  </div>
+
+  <!-- ===================== LOAD PAGE MODAL ===================== -->
+  <div v-if="showLoadPageModal" class="fixed inset-0 z-[9000] flex items-center justify-center bg-black bg-opacity-60">
+    <div class="bg-white w-[92%] max-w-sm p-4 rounded-lg max-h-[70vh] overflow-auto">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-lg font-bold">Kitab Tafsir As Sadi</h3>
+        <button @click="showLoadPageModal=false" class="px-3 py-1 rounded bg-red-500 text-white">Tutup</button>
+      </div>
+      <p v-if="loading" class="text-center text-yellow-600 font-semibold text-sm">⏳ Sedang request data...</p>
+      <div class="pt-2">
+        <label class="block text-sm font-medium text-gray-700">Kode Halaman:</label>
+        <p class="text-xs text-gray-400 mt-0.5 mb-1">Format 6 digit: <span class="font-mono font-semibold text-gray-600">002151</span> &mdash; 3 digit awal = nomor surat, 3 digit akhir = nomor ayat</p>
+        <input type="text" v-model="noHalaman" inputmode="numeric" maxlength="6" placeholder="contoh: 002151" :disabled="loading"
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-indigo-200 mt-1 font-mono tracking-widest text-lg text-center">
+        <!-- Preview live surat & ayat -->
+        <div v-if="noHalaman && String(noHalaman).length > 0" class="mt-2 flex gap-2 justify-center">
+          <div class="flex-1 rounded-lg px-3 py-2 text-center" style="background:#eff6ff;border:1px solid #bfdbfe">
+            <div class="text-xs text-blue-500 font-semibold">Surat ke</div>
+            <div class="text-2xl font-bold text-blue-700 font-mono">{{ String(noHalaman).length >= 3 ? Number(String(noHalaman).slice(0,3)) : '?' }}</div>
+          </div>
+          <div class="flex-1 rounded-lg px-3 py-2 text-center" style="background:#f0fdf4;border:1px solid #bbf7d0">
+            <div class="text-xs text-green-500 font-semibold">Ayat ke</div>
+            <div class="text-2xl font-bold text-green-700 font-mono">{{ String(noHalaman).length === 6 ? Number(String(noHalaman).slice(3,6)) : '?' }}</div>
+          </div>
+        </div>
+        <div class="flex justify-end pt-3">
+          <button @click="_doInsert" :disabled="!noHalaman || String(noHalaman).length !== 6 || loading"
+            class="px-4 py-2 font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition disabled:opacity-40">
+            Muat Halaman
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MANUAL INPUT MODAL ===================== -->
+  <div v-if="showManualInput" class="fixed inset-0 z-[9000] flex items-center justify-center bg-black bg-opacity-60">
+    <div class="bg-white w-[96%] max-w-2xl rounded-xl shadow-2xl flex flex-col" style="max-height:92vh">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between px-4 py-3 border-b" style="background:#f4e2a3;border-radius:0.75rem 0.75rem 0 0">
+        <div class="font-bold text-amber-900">✍️ Input Manual Teks Arab</div>
+        <button @click="showManualInput=false" class="px-3 py-1 rounded bg-red-500 text-white text-sm">Tutup</button>
+      </div>
+
+      <!-- Tab -->
+      <div class="flex border-b">
+        <button @click="manualInputTab='paste'"
+          :class="manualInputTab==='paste' ? 'border-b-2 border-amber-600 text-amber-700 font-semibold' : 'text-gray-500'"
+          class="flex-1 py-2 text-sm transition">📋 Paste JSON</button>
+        <button @click="manualInputTab='saved'; _loadManualSavedList()"
+          :class="manualInputTab==='saved' ? 'border-b-2 border-amber-600 text-amber-700 font-semibold' : 'text-gray-500'"
+          class="flex-1 py-2 text-sm transition">💾 Data Tersimpan</button>
+        <button @click="manualInputTab='prompt'"
+          :class="manualInputTab==='prompt' ? 'border-b-2 border-amber-600 text-amber-700 font-semibold' : 'text-gray-500'"
+          class="flex-1 py-2 text-sm transition">📝 Copy Prompt</button>
+      </div>
+
+      <div class="overflow-auto flex-1 p-4">
+
+        <!-- TAB: PASTE JSON -->
+        <div v-if="manualInputTab==='paste'">
+          <p class="text-xs text-gray-500 mb-2">
+            Paste hasil dari Gemini / ChatGPT di sini. Format harus berupa JSON array sesuai standar app.<br>
+            Gunakan tab <strong>📝 Copy Prompt</strong> untuk mendapatkan prompt yang siap dikirim ke AI.
+          </p>
+          <textarea v-model="manualJsonText" rows="10" placeholder='[{"no":1,"arab":"بِسْمِ","noHarokat":"بسم","arti":"Dengan nama","kedudukan":"Jar Majrur","latin":"bismi","harakatSalah1":"بِسْمَ","harakatSalah2":"بِسْمُ"}, ...]'
+            class="w-full border rounded-lg p-3 text-xs font-mono focus:ring-2 focus:ring-amber-300 focus:outline-none resize-none"
+            style="direction:ltr"></textarea>
+
+          <!-- Pratinjau -->
+          <div v-if="manualJsonText.trim()" class="mt-2">
+            <div v-if="_parseManualJson()" class="text-xs text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2">
+              ✅ JSON valid — {{ _parseManualJson().length }} kata terdeteksi
+            </div>
+            <div v-else class="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+              ❌ Format JSON tidak valid. Periksa kembali output dari AI.
+            </div>
+          </div>
+
+          <!-- Simpan dengan nama -->
+          <div class="mt-3 flex gap-2 items-center">
+            <label class="text-xs text-gray-600 whitespace-nowrap">Simpan sebagai:</label>
+            <input v-model="manualSaveName" type="text" class="flex-1 border rounded px-2 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-amber-400">
+          </div>
+
+          <!-- Tombol aksi -->
+          <div class="mt-3 flex gap-2 flex-wrap">
+            <button @click="_manualLoad(false)"
+              :disabled="!_parseManualJson()"
+              class="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-semibold disabled:opacity-40 hover:bg-amber-700 transition">
+              ▶ Muat Sekarang
+            </button>
+            <button @click="_manualLoad(true)"
+              :disabled="!_parseManualJson()"
+              class="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold disabled:opacity-40 hover:bg-green-700 transition">
+              💾 Simpan & Muat
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB: DATA TERSIMPAN -->
+        <div v-if="manualInputTab==='saved'">
+          <div v-if="manualSavedList.length===0" class="text-center italic text-gray-400 py-10">
+            Belum ada data tersimpan.
+          </div>
+          <div v-else class="space-y-2">
+            <div v-for="item in manualSavedList" :key="item.key"
+              class="flex items-center gap-2 p-3 border rounded-lg hover:bg-amber-50 transition">
+              <div class="flex-1 min-w-0">
+                <div class="font-mono text-sm font-semibold text-gray-700">{{ item.key.replace('manualData_','') }}</div>
+                <div class="text-xs text-gray-400 mt-0.5">{{ item.count }} kata · disimpan {{ item.date }}</div>
+              </div>
+              <button @click="_manualLoadSaved(item.key)"
+                class="px-3 py-1 rounded bg-amber-600 text-white text-xs font-bold hover:bg-amber-700 transition">
+                Muat
+              </button>
+              <button @click="_manualDeleteSaved(item.key)"
+                class="px-3 py-1 rounded bg-red-500 text-white text-xs hover:bg-red-600 transition">
+                Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: COPY PROMPT -->
+        <div v-if="manualInputTab==='prompt'">
+          <!-- Sub-tab -->
+          <div class="flex gap-2 mb-3">
+            <button @click="manualPromptSub='foto'"
+              :class="manualPromptSub==='foto' ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-600'"
+              class="px-3 py-1 rounded-full text-xs font-semibold transition">📷 Prompt Foto → Teks</button>
+            <button @click="manualPromptSub='nahwu'"
+              :class="manualPromptSub==='nahwu' ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-600'"
+              class="px-3 py-1 rounded-full text-xs font-semibold transition">🔬 Prompt Teks → JSON Nahwu</button>
+          </div>
+
+          <!-- Alur kerja -->
+          <p class="text-xs text-gray-500 mb-2">
+            <template v-if="manualPromptSub==='foto'">
+              <strong>Langkah 1:</strong> Upload foto teks Arab ke Gemini/ChatGPT, lalu kirim prompt ini → dapatkan teks Arab mentah.
+            </template>
+            <template v-else>
+              <strong>Langkah 2:</strong> Di chat baru, paste teks Arab hasil ekstraksi + prompt ini → dapatkan JSON siap paste ke app.
+            </template>
+          </p>
+
+          <div class="relative">
+            <pre class="bg-gray-50 border rounded-lg p-3 text-xs overflow-auto whitespace-pre-wrap" style="direction:ltr;max-height:300px">{{ manualPromptSub==='foto' ? _promptFotoText() : _manualPromptText() }}</pre>
+            <button @click="_copyPromptSub()"
+              class="absolute top-2 right-2 px-3 py-1 rounded bg-amber-600 text-white text-xs font-bold hover:bg-amber-700 transition">
+              📋 Copy
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== DICTIONARY MODAL ===================== -->
+  <div v-if="showDictionary" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+    <div class="bg-white w-[92%] max-w-3xl p-4 rounded-lg max-h-[80vh] flex flex-col">
+      <!-- Header -->
+      <div class="flex justify-between items-center mb-3 flex-shrink-0">
+        <h3 class="text-lg font-bold">📚 Kamus Saya ({{ myDictionary.length }})</h3>
+        <button @click="showDictionary=false" class="px-3 py-1 rounded bg-red-500 text-white text-sm">Tutup</button>
+      </div>
+      <!-- Toolbar: sort + kuis -->
+      <div class="flex gap-2 items-center mb-3 flex-wrap flex-shrink-0">
+        <span class="text-xs text-gray-500">Urutkan:</span>
+        <button @click="dictionarySortDir='desc'"
+          :class="dictionarySortDir==='desc' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700'"
+          class="px-2 py-1 rounded text-xs">Terbaru</button>
+        <button @click="dictionarySortDir='most-wrong'"
+          :class="dictionarySortDir==='most-wrong' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700'"
+          class="px-2 py-1 rounded text-xs">Terbanyak Salah ↓</button>
+        <button @click="dictionarySortDir='least-wrong'"
+          :class="dictionarySortDir==='least-wrong' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700'"
+          class="px-2 py-1 rounded text-xs">Tersedikit Salah ↑</button>
+        <button v-if="myDictionary.length >= 2" @click="openDictQuizSetup"
+          class="ml-auto px-3 py-1 rounded bg-amber-500 text-white text-xs font-bold">🎯 Kuis Kamus</button>
+      </div>
+      <!-- List -->
+      <div class="overflow-auto flex-1">
+        <div v-if="myDictionary.length===0" class="text-center italic text-gray-600 py-8">Kamus Anda kosong.</div>
+        <div v-else class="space-y-2">
+          <div v-for="it in sortedDictionary" :key="it.timestamp"
+            class="p-3 border rounded-lg flex justify-between items-start gap-2">
+            <div class="flex-1 min-w-0">
+              <div style="font-family:'Amiri',serif;direction:rtl" class="text-right text-xl">{{ it.arab }}</div>
+              <div class="text-sm mt-1 text-gray-700">{{ it.arti || '-' }}</div>
+              <div class="text-xs text-gray-400 mt-0.5">{{ it.kedudukan || '' }}</div>
+              <!-- Skor benar/salah -->
+              <div class="flex gap-2 mt-1">
+                <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✅ {{ it.correctCount||0 }}</span>
+                <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">❌ {{ it.wrongCount||0 }}</span>
+              </div>
+            </div>
+            <button @click="removeFromDictionaryByTimestamp(it.timestamp)"
+              class="text-red-400 hover:text-red-600 text-lg leading-none flex-shrink-0">×</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== API KEY MODAL ===================== -->
+  <div v-if="showApiKeyModal"
+    style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);z-index:100000"
+    aria-modal="true" role="dialog">
+    <div style="background:white;width:92%;max-width:520px;padding:20px;border-radius:12px;box-shadow:0 20px 50px rgba(2,6,23,0.6)">
+      <h3 class="text-lg font-bold mb-2">🔑 Masukkan Gemini API Key</h3>
+      <p class="text-sm mb-2">Simpan API Key agar aplikasi dapat melakukan OCR & analisis Nahwu otomatis (opsional).</p>
+      <input v-model="tempApiKey" type="password" placeholder="API Key" class="w-full p-2 border rounded mb-3"/>
+      <div class="flex gap-2">
+        <button @click="saveApiKey" :disabled="!tempApiKey" class="px-4 py-2 rounded bg-blue-600 text-white">Simpan & Inisialisasi</button>
+        <button @click="closeApiKeyModal" class="px-4 py-2 rounded border">Batal</button>
+      </div>
+      <p class="text-xs text-gray-600 mt-4">Belum punya API Key?
+        <a href="https://ai.google.dev/gemini-api/docs/api-key" target="_blank" rel="noopener" class="text-blue-600 hover:underline">Dapatkan di sini</a>.
+      </p>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL REVIEW KUIS ===================== -->
+  <!-- Muncul saat klik kata yang sudah dijawab di mode kuis -->
+  <div v-if="showQuizReview" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+    @click.self="showQuizReview=false">
+    <div class="bg-white w-[92%] max-w-sm rounded-2xl shadow-2xl overflow-hidden">
+      <!-- Header warna sesuai hasil jawaban -->
+      <div :class="quizReviewItem && feedback[quizReviewIdx] && feedback[quizReviewIdx].status === 'correct'
+          ? 'bg-green-500' : 'bg-red-400'"
+        class="px-5 py-3 flex items-center justify-between">
+        <span class="text-white font-bold text-sm">
+          {{ quizReviewItem && feedback[quizReviewIdx] && feedback[quizReviewIdx].status === 'correct' ? '✅ Benar' : '❌ Salah' }}
+        </span>
+        <button @click="showQuizReview=false" class="text-white text-xl leading-none">&times;</button>
+      </div>
+      <!-- Isi -->
+      <div class="px-5 py-4" v-if="quizReviewItem">
+        <!-- Arab dengan harokat -->
+        <div style="font-family:'Amiri',serif;direction:rtl;text-align:right"
+          :style="{ fontSize: (fontSizeArabic + 8) + 'px' }">
+          {{ quizReviewItem.arab || quizReviewItem.noHarokat }}
+        </div>
+        <!-- Latin -->
+        <div v-if="quizReviewItem.latin" class="text-sm text-gray-500 mt-1 text-right">
+          {{ quizReviewItem.latin }}
+        </div>
+        <hr class="my-3">
+        <div class="space-y-2 text-sm">
+          <div><span class="text-gray-500">Arti</span><br>
+            <span class="font-medium">{{ quizReviewItem.arti || '—' }}</span></div>
+          <div><span class="text-gray-500">Kedudukan Nahwu</span><br>
+            <span class="font-medium">{{ quizReviewItem.kedudukan || '—' }}</span></div>
+        </div>
+        <div class="mt-4 flex gap-2">
+          <button @click="addToMyDictionary(quizReviewItem); showQuizReview=false;"
+            class="flex-1 py-2 rounded-lg bg-green-600 text-white text-sm">Simpan ke Kamus</button>
+          <button @click="showQuizReview=false"
+            class="flex-1 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SETUP KUIS KAMUS ===================== -->
+  <div v-if="showDictQuizSetup" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+    <div class="bg-white w-[92%] max-w-sm rounded-2xl shadow-2xl overflow-hidden">
+      <!-- Header -->
+      <div class="bg-amber-500 px-5 py-3 flex items-center justify-between">
+        <span class="text-white font-bold">🎯 Atur Kuis Kamus</span>
+        <button @click="showDictQuizSetup=false" class="text-white text-xl leading-none">&times;</button>
+      </div>
+
+      <div class="px-5 py-4 space-y-5">
+
+        <!-- 1. Pilih jumlah soal per level -->
+        <div>
+          <p class="text-xs font-semibold text-gray-500 mb-2">JUMLAH SOAL PER LEVEL</p>
+          <div class="flex gap-2 flex-wrap">
+            <button v-for="n in [5, 10, 20, 50, 0]" :key="n"
+              @click="dictQuizBatchSize = n"
+              :class="dictQuizBatchSize === n
+                ? 'bg-amber-500 text-white border-amber-500'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-amber-400'"
+              class="px-3 py-1.5 rounded-lg border text-sm font-medium transition">
+              {{ n === 0 ? 'Semua' : n }}
+            </button>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">
+            Total kamus: {{ sortedDictionary.filter(d=>d.arti&&d.arab).length }} kata
+            → {{ dictQuizLevels.length }} level
+          </p>
+        </div>
+
+        <!-- 2. Pilih mode level -->
+        <div>
+          <p class="text-xs font-semibold text-gray-500 mb-2">MODE LEVEL</p>
+          <div class="flex gap-2">
+            <button @click="dictQuizMode='level'"
+              :class="dictQuizMode==='level'
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'"
+              class="flex-1 py-2 rounded-lg border text-sm font-medium transition text-center">
+              <div>📦 Per Level</div>
+              <div class="text-xs opacity-70 mt-0.5">Level 1: kata 1–{{ dictQuizBatchSize||'semua' }}</div>
+            </button>
+            <button @click="dictQuizMode='cumulative'"
+              :class="dictQuizMode==='cumulative'
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'"
+              class="flex-1 py-2 rounded-lg border text-sm font-medium transition text-center">
+              <div>📈 Kumulatif</div>
+              <div class="text-xs opacity-70 mt-0.5">Level 2: kata 1–{{ (dictQuizBatchSize||0)*2||'semua' }}</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Pilih level -->
+        <div v-if="dictQuizLevels.length > 0">
+          <p class="text-xs font-semibold text-gray-500 mb-2">
+            PILIH LEVEL
+            <span class="text-gray-400 font-normal ml-1">
+              (urut: {{ dictionarySortDir === 'desc' ? 'Terbaru' : dictionarySortDir === 'most-wrong' ? 'Terbanyak Salah' : 'Tersedikit Salah' }})
+            </span>
+          </p>
+
+          <!-- Summary hasil level terakhir (muncul setelah selesai kuis & setting belum berubah) -->
+          <div v-if="isLastResultValid" class="mb-3 p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-xs flex items-center gap-3">
+            <span class="text-indigo-600 font-bold text-sm">Level {{ dictQuizLastResult.level }}</span>
+            <span class="text-gray-500">selesai</span>
+            <span class="text-green-600 font-semibold">✅ {{ dictQuizLastResult.correct }}</span>
+            <span class="text-red-400 font-semibold">❌ {{ dictQuizLastResult.wrong }}</span>
+            <span v-if="dictQuizLastResult.level < dictQuizLevels.length"
+              class="ml-auto text-indigo-500 font-semibold">→ Level {{ dictQuizLastResult.level + 1 }}</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 max-h-52 overflow-y-auto">
+            <button v-for="lv in dictQuizLevels" :key="lv.level"
+              @click="startDictQuiz(lv)"
+              :class="[
+                'flex flex-col items-center py-2.5 px-1 rounded-xl border transition text-center',
+                isLastResultValid && dictQuizLastResult.level === lv.level
+                  ? 'bg-indigo-50 border-indigo-400 ring-2 ring-indigo-300'
+                  : isLastResultValid && dictQuizLastResult.level + 1 === lv.level
+                    ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-200'
+                    : 'bg-gray-50 hover:bg-amber-50 hover:border-amber-400 border-gray-200'
+              ]">
+              <span v-if="isLastResultValid && dictQuizLastResult.level === lv.level"
+                class="text-[10px] bg-indigo-500 text-white px-1.5 rounded-full mb-0.5">Terakhir</span>
+              <span v-else-if="isLastResultValid && dictQuizLastResult.level + 1 === lv.level"
+                class="text-[10px] bg-amber-500 text-white px-1.5 rounded-full mb-0.5">Berikutnya</span>
+              <span v-else class="text-[10px] text-transparent mb-0.5">·</span>
+              <span class="text-sm font-bold text-gray-700">{{ lv.label }}</span>
+              <span class="text-xs text-gray-400 mt-0.5">{{ lv.desc }}</span>
+              <span class="text-xs text-amber-600 mt-1 font-medium">{{ lv.end - lv.start }} soal</span>
+            </button>
+          </div>
+        </div>
+
+        <p v-else class="text-sm text-center text-gray-400 italic py-2">
+          Belum ada kata di kamus.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== KUIS KAMUS ===================== -->
+  <div v-if="showDictQuiz" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+    <div class="bg-white w-[92%] max-w-sm rounded-2xl shadow-2xl overflow-hidden">
+
+      <!-- ── LAYAR HASIL AKHIR ── -->
+      <template v-if="dictQuizDone">
+        <div class="bg-indigo-600 px-5 py-4 text-center">
+          <div class="text-white text-2xl font-bold mb-1">🏁 Level {{ dictQuizLevel }} Selesai!</div>
+          <div class="text-indigo-200 text-sm">{{ dictQuizCorrect }} kata dikuasai · {{ dictQuizWrong }}× salah</div>
+        </div>
+        <div class="px-5 py-6 text-center">
+          <div class="text-5xl font-bold text-green-500 mb-1">{{ dictQuizCorrect }}</div>
+          <div class="text-sm text-gray-500 mb-4">kata berhasil dijawab benar</div>
+          <div class="flex justify-center gap-6 mb-5">
+            <div class="text-center">
+              <div class="text-2xl font-bold text-green-500">{{ dictQuizCorrect }}</div>
+              <div class="text-xs text-gray-400">Dikuasai ✅</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-red-400">{{ dictQuizWrong }}</div>
+              <div class="text-xs text-gray-400">Total salah ❌</div>
+            </div>
+          </div>
+          <div class="text-sm text-gray-500 italic mb-5">
+            <span v-if="dictQuizWrong === 0">Sempurna! 🎉</span>
+            <span v-else-if="dictQuizWrong <= dictQuizCorrect">Bagus! Terus berlatih 💪</span>
+            <span v-else>Jangan menyerah, ulangi lagi 📖</span>
+          </div>
+          <!-- Langsung kembali ke setup, level terakhir sudah ter-highlight -->
+          <button @click="showDictQuiz=false; showDictQuizSetup=true;"
+            class="w-full py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold">
+            ← Pilih Level Berikutnya
+          </button>
+        </div>
+      </template>
+
+      <!-- ── LAYAR SOAL ── -->
+      <template v-else>
+        <!-- Header + progress -->
+        <div class="bg-amber-500 px-5 pt-3 pb-2">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-white font-bold text-sm">🎯 Kuis Kamus</span>
+            <button @click="showDictQuiz=false" class="text-white text-xl leading-none">&times;</button>
+          </div>
+          <!-- Progress bar: berdasarkan jumlah yang sudah dijawab benar -->
+          <div class="bg-amber-300 rounded-full h-2 mb-1">
+            <div class="bg-white rounded-full h-2 transition-all"
+              :style="{ width: (dictQuizCorrect / (dictQuizCorrect + (dictQuizQueue.length - dictQuizCurrent)) * 100) + '%' }"></div>
+          </div>
+          <div class="text-amber-100 text-xs text-right">
+            ✅ {{ dictQuizCorrect }} benar · {{ dictQuizQueue.length - dictQuizCurrent }} soal tersisa
+          </div>
+        </div>
+
+        <div class="px-5 py-4" v-if="dictQuizItem">
+          <!-- Soal: kata Arab -->
+          <div class="text-center mb-4">
+            <div style="font-family:'Amiri',serif;direction:rtl;font-size:2.4rem;line-height:1.4">
+              {{ dictQuizItem.arab || dictQuizItem.noHarokat }}
+            </div>
+            <div v-if="dictQuizItem.latin" class="text-sm text-gray-400 mt-1">{{ dictQuizItem.latin }}</div>
+          </div>
+
+          <p class="text-xs text-gray-400 text-center mb-3">Pilih arti yang benar</p>
+
+          <!-- Pilihan jawaban -->
+          <div class="flex flex-col gap-2">
+            <button v-for="(choice, ci) in dictQuizChoices" :key="ci"
+              @click="checkDictQuizAnswer(choice)"
+              :disabled="dictQuizFeedback !== null"
+              :class="[
+                'w-full py-2 px-3 rounded-lg text-sm text-left transition border',
+                dictQuizFeedback === null
+                  ? 'bg-gray-50 hover:bg-indigo-50 border-gray-200 active:bg-indigo-100'
+                  : choice === dictQuizItem.arti
+                    ? 'bg-green-100 border-green-500 border-2 font-bold text-green-800'
+                    : choice === dictQuizLastPicked && dictQuizFeedback === 'wrong'
+                      ? 'bg-red-100 border-red-400 border-2 text-red-800'
+                      : 'bg-gray-50 border-gray-200 opacity-40'
+              ]">
+              {{ choice }}
+            </button>
+          </div>
+
+          <!-- Feedback setelah jawab -->
+          <div v-if="dictQuizFeedback" class="mt-4">
+            <div class="flex items-center justify-between mb-3">
+              <span :class="dictQuizFeedback === 'correct' ? 'text-green-600' : 'text-red-500'"
+                class="font-bold text-sm">
+                {{ dictQuizFeedback === 'correct' ? '✅ Benar!' : '❌ Salah' }}
+              </span>
+              <span class="text-xs text-gray-400">{{ dictQuizItem.kedudukan || '' }}</span>
+            </div>
+            <button @click="nextDictQuiz"
+              class="w-full py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold">
+              {{ dictQuizCurrent + 1 < dictQuizQueue.length ? (dictQuizFeedback === 'wrong' ? 'Lanjut (diulangi nanti) →' : 'Soal Berikutnya →') : 'Lihat Hasil 🏁' }}
+            </button>
+          </div>
+        </div>
+      </template>
+
+    </div>
+  </div>
+
+  <!-- ===================== MAIN: MODE NORMAL ===================== -->
+  <br>
+  <div v-if="!isQuizMode" class="book">
+    <div v-if="currentSuratAyat" class="hal-sticky">
+      <span class="inline-block px-4 py-1 rounded-full text-sm font-semibold"
+        style="background:#f4e2a3;color:#78350f;border:1px solid #d97706;letter-spacing:0.05em">
+        📖 Surat {{ currentSuratAyat.surat }} &nbsp;·&nbsp; Ayat {{ currentSuratAyat.ayat }}
+      </span>
+      <br>
+    </div>
+    <div class="flex justify-between items-center border-b pb-2 mb-4 mt-2">
+      <div class="text-lg font-semibold">Teks Arab Interaktif</div>
+      <button @click="copyArabicText" :disabled="dataAwal.length===0"
+        class="px-3 py-1 rounded bg-blue-600 text-white text-sm disabled:opacity-40">📋 Salin Teks Arab</button>
+    </div>
+    <div v-if="dataAwal.length===0" class="p-8 text-center text-gray-600 italic">
+      Tekan <strong>Load Data</strong> atau <strong>Scan Gambar</strong> untuk memulai.
+    </div>
+    <div v-else class="page-paragraph" :style="{ fontSize: fontSizeArabic + 'px' }" aria-live="polite">
+      <template v-for="(item, idx) in dataAwal">
+        <div v-if="item.noHarokat === 'NL' || item.arab === 'NL'"
+          :key="'nl-'+idx" class="w-full" style="height:2rem; margin-bottom:0.5rem; border-top:1px dashed rgba(0,0,0,0.08)"></div>
+        <span v-else class="word-stack" :key="String(idx)" :data-key="String(idx)">
+          <span class="arab-word rtl-text"
+            :class="[
+              {
+                'is-reading':   isSpeaking && activeWordIndex === String(idx),
+                'is-paused':    !isSpeaking && pausedWordIndex === String(idx),
+                'bg-yellow-200': activeBubble && clickedWordIndex === String(idx)
+              },
+              showNahwuColor && !(activeBubble && clickedWordIndex === String(idx))
+                && !(isSpeaking && activeWordIndex === String(idx))
+                ? _nahwuColor(item.kedudukan) : ''
+            ]"
+            @click.stop="handleWordClick(item, String(idx), $event)"
+            tabindex="0" role="button">
+            {{ showArabic ? (item.arab || item.noHarokat) : (item.noHarokat || item.arab) }}
+          </span>
+          <small class="word-meaning" :class="{ hidden: !(showMeaning || clickedWordIndex === String(idx)) }"
+            :style="{ fontSize: fontSizeMeaning + 'px' }">{{ item.arti || '—' }}</small>
+          <small class="word-nahwu" :class="{ hidden: !showNahwu }"
+            :style="{ fontSize: (fontSizeMeaning - 1) + 'px' }">{{ item.kedudukan || '—' }}</small>
+        </span>
+      </template>
+    </div>
+  </div>
+
+<!-- ===================== MAIN: MODE KUIS ===================== -->
+  <div v-if="isQuizMode" class="book">
+    <div v-if="currentSuratAyat" class="hal-sticky">
+      <span class="inline-block px-4 py-1 rounded-full text-sm font-semibold"
+        style="background:#f4e2a3;color:#78350f;border:1px solid #d97706;letter-spacing:0.05em">
+        📖 Surat {{ currentSuratAyat.surat }} &nbsp;·&nbsp; Ayat {{ currentSuratAyat.ayat }}
+      </span>
+      
+    </div>
+    <br><br>
+    <div class="page-paragraph rtl-text text-right" :style="{ fontSize: fontSizeArabic + 'px' }">
+    <template v-for="(item, idx) in dataAwal">
+      <div v-if="item.noHarokat === 'NL' || item.arab === 'NL'"
+        :key="'nl-'+idx" class="w-full" style="height:2rem; margin-bottom:0.5rem; border-top:1px dashed rgba(0,0,0,0.08)"></div>
+
+      <span v-else class="word-stack" :key="String(idx)" :data-key="String(idx)">
+        <span class="arab-word rtl-text cursor-pointer"
+          :class="{
+            'bg-green-100': feedback[String(idx)] && feedback[String(idx)].status === 'correct',
+            'bg-pink-100':  feedback[String(idx)] && feedback[String(idx)].status === 'wrong',
+            'is-reading':   isSpeaking && activeWordIndex === String(idx),
+            'is-paused':    !isSpeaking && pausedWordIndex === String(idx),
+            'border-2 border-transparent': true
+          }"
+          @click.stop="answeredWordIndexes.includes(String(idx))
+            ? openQuizReview(item, String(idx))
+            : startQuizForWord(String(idx), item)"
+          tabindex="0" role="button">
+          {{
+            answeredWordIndexes.includes(String(idx))
+              ? (item.arab || item.noHarokat)
+              : (quizActiveIndex === String(idx) ? '' : item.noHarokat)
+          }}
+        </span>
+
+        <!-- Pilihan jawaban kuis — pakai quizActiveIndex, bukan activeWordIndex -->
+        <div v-if="quizActiveIndex === String(idx) && quizChoices.length > 0"
+          class="mt-2 flex flex-col gap-2 w-full max-w-xs rtl-text">
+          <button v-for="(choice, cidx) in quizChoices" :key="cidx"
+            @click.stop="checkQuizAnswer(choice, String(idx), cidx, item)"
+            :class="[
+              'p-1 rounded-lg transition text-center shadow leading-relaxed',
+              {
+                'bg-white hover:bg-indigo-100': quizFeedback[cidx] == null,
+                'bg-pink-200 border border-pink-300':  quizFeedback[cidx] === 'wrong',
+                'bg-green-200 border border-green-300': quizFeedback[cidx] === 'correct'
+              }
+            ]">
+            {{ choice }}
+            <span v-if="quizFeedback[cidx] === 'wrong'" class="ml-2 text-sm text-gray-700 font-bold">
+              (Benar: {{ item.arab }})
+            </span>
+          </button>
+        </div>
+
+        <small class="word-meaning"
+          :class="{ hidden: !answeredWordIndexes.includes(String(idx)) }"
+          :style="{ fontSize: fontSizeMeaning + 'px' }">{{ item.arti || '—' }}</small>
+      </span>
+        </template>
+    </div>
+  </div>
+
+<!-- ===================== READING BAR ===================== -->
+  <div v-if="isSpeaking || isPaused" class="reading-bar">
+
+    <!-- Baris atas: kata + arti + tombol simpan + progress -->
+    <div class="rb-word-row">
+      <span class="arab-now">{{ currentReadingItem ? (currentReadingItem.arab || currentReadingItem.noHarokat) : '' }}</span>
+      <div style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;overflow:hidden">
+        <span class="arti-now" v-if="isPaused" style="color:#fbbf24">⏸ Dijeda</span>
+        <span class="arti-now" v-else>{{ currentReadingItem ? currentReadingItem.arti : '' }}</span>
+        <span v-if="currentReadingItem && currentReadingItem.kedudukan"
+          style="font-size:0.68rem;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+          {{ currentReadingItem.kedudukan }}
+        </span>
+      </div>
+      <!-- Tombol simpan ke kamus -->
+      <button
+        v-if="currentReadingItem"
+        @click="saveCurrentWordToDictionary"
+        :class="isCurrentWordInDictionary ? 'rb-btn-saved' : 'rb-btn-save'"
+        class="rb-btn-bookmark"
+        :title="isCurrentWordInDictionary ? 'Sudah di kamus' : 'Simpan ke kamus'"
+      >
+        {{ isCurrentWordInDictionary ? '✅' : '📌' }}
+      </button>
+      <span class="progress-pill">{{ activeWordIndex != null ? (Number(activeWordIndex)+1) : '?' }} / {{ dataAwal.length }}</span>
+    </div>
+
+    <!-- Baris bawah: kontrol + setting -->
+    <div class="rb-controls">
+      <!-- Navigasi -->
+      <button class="rb-btn rb-btn-prev" @click="skipReading(-1)" :disabled="isPaused" title="Ulang kata">⏮</button>
+
+      <!-- Pause / Resume / Play -->
+      <button v-if="isSpeaking && !isPaused" class="rb-btn rb-btn-pause" @click="pauseReading" title="Jeda">⏸</button>
+      <button v-if="isPaused" class="rb-btn rb-btn-play" @click="resumeReading" title="Lanjut">▶</button>
+
+      <button class="rb-btn rb-btn-stop" @click="stopReading" title="Berhenti">⏹</button>
+      <button class="rb-btn rb-btn-skip" @click="skipReading(1)" :disabled="isPaused" title="Lewati">⏭</button>
+
+      <div class="rb-divider"></div>
+
+      <!-- Kecepatan suara -->
+      <select v-model.number="readingSpeed">
+        <option :value="0.75">0.75×</option>
+        <option :value="1">1×</option>
+        <option :value="1.25">1.25×</option>
+        <option :value="1.5">1.5×</option>
+      </select>
+
+      <div class="rb-divider"></div>
+
+      <!-- Jeda antar kata -->
+      <div class="rb-delay" title="Jeda antar kata">
+        ⏱
+        <input type="range" v-model.number="readingDelayWord" min="0" max="3000" step="100">
+        <span>{{ readingDelayWord }}ms</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mini bar: saat tidak sedang baca tapi ada posisi pause tersimpan -->
+  <div v-if="!isSpeaking && !isPaused && pausedWordIndex !== null" class="mini-resume-bar">
+    <span>⏸ Terakhir dibaca: kata ke-{{ Number(pausedWordIndex)+1 }}</span>
+    <button @click="resumeFromPause" style="background:#22c55e;color:#fff">▶ Lanjut dari sini</button>
+    <button @click="clearPause" style="background:#475569;color:#fff">× Hapus</button>
+  </div>
+
+  <br><br><br><br><br><br>
+
+  <!-- Toast -->
+  <div v-if="showToast" :class="['toast', toastTypeClass]">
+    <div>{{ toastMessage }}</div>
+    <button @click="hideToast" style="background:none;border:none;color:#fff;font-size:1.1rem;cursor:pointer;padding:0 4px">&times;</button>
+  </div>
+
+</div><!-- #app -->
+
+<script type="module"></script>
+<script>
+(function(){
+  const NAHWU_STORAGE_KEY  = 'nahwu_data';
+  const API_KEY_STORAGE_KEY = 'geminiApiKey';
+  const QUIZ_STATE_KEY      = 'quiz_state';
+  const READ_STATE_KEY      = 'read_state'; // simpan posisi pause baca
+
+  new Vue({
+    el: '#app',
+    data() {
+      const DEFAULT_FONT_ARABIC  = 24;
+      const DEFAULT_FONT_MEANING = 10;
+      const _savedQuiz = (() => {
+        try { return JSON.parse(localStorage.getItem(QUIZ_STATE_KEY) || 'null'); } catch(e) { return null; }
+      })();
+      return {
+        fontSizeArabic:  Number(localStorage.getItem('fontSizeArabic'))  || DEFAULT_FONT_ARABIC,
+        fontSizeMeaning: Number(localStorage.getItem('fontSizeMeaning')) || DEFAULT_FONT_MEANING,
+
+        isHeaderVisible:   true,
+        isButtonTransparent: true,
+        isButtonHeld:      false,
+        transparencyTimer: null,
+
+        insertUrlBase: 'https://script.google.com/macros/s/AKfycby025S9w4zqYOhMzReoyu2EOauP-7uVJZCFbCiC_lrclg9WXNapzwxGwo7LLW7sV15G6A/exec',
+        showLoadPageModal: false,
+        noHalaman: null,
+
+        // Progress kuis — dimuat dari localStorage, tetap ada sampai load data baru
+        answeredWordIndexes: (_savedQuiz && _savedQuiz.answeredWordIndexes) || [],
+        feedback:            (_savedQuiz && _savedQuiz.feedback)            || {},
+        isQuizMode: true,
+        quizChoices: [],
+        quizFeedback: {},
+        debugMode: false,
+        dataAwal: [],
+        dataFetch: [],
+
+        loading: false,
+        loadingMessage: 'Memproses...',
+        showApiKeyModal: false,
+        tempApiKey: '',
+        isApiKeySet: !!localStorage.getItem(API_KEY_STORAGE_KEY),
+        requireApiKeyForOCR: false,
+        aiClient: null,
+
+        showToast: false,
+        toastMessage: '',
+        toastType: 'green',
+        theme: localStorage.getItem('theme') || 'light',
+        showDictionary: false,
+        showManualInput: false,
+        manualInputTab: 'paste',   // 'paste' | 'saved'
+        manualJsonText: '',
+        manualSaveName: (() => {
+          const d = new Date();
+          const pad = n => String(n).padStart(2,'0');
+          return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}`;
+        })(),
+        manualSavedList: [],
+        manualPromptSub: 'foto',
+        dictionarySortDir: 'desc',
+        showArabic: true,
+        showMeaning: true,
+        showNahwu: false,
+        showNahwuColor: false,
+        pwaInstallPrompt: null,
+
+        // TTS state
+        isSpeaking:         false,
+        isPaused:           false,
+        activeWordIndex:    null,   // index kata yang SEDANG DIBACA (highlight TTS)
+        pausedWordIndex:    (() => { try { return localStorage.getItem(READ_STATE_KEY) || null; } catch(e) { return null; } })(),
+        quizActiveIndex:    null,   // index kata yang SEDANG DIKUIS (tampilkan pilihan jawaban)
+        readMode:           'arab-arti',
+        readingSpeed:       1.0,
+        readingDelayWord:   600,
+        readingDelaySegment: 400,
+        _readCurrent:       0,
+        _readData:          [],
+        currentReadingItem: null,
+
+        activeBubble:    null,
+        clickedWordIndex: null,
+        myDictionary: JSON.parse(localStorage.getItem('myDictionary') || '[]'),
+
+        // modal review kuis
+        showQuizReview: false,
+        quizReviewItem: null,
+        quizReviewIdx:  null,
+
+        // kuis kamus
+        showDictQuiz:       false,
+        showDictQuizSetup:  false,  // layar pemilihan jumlah soal & level
+        dictQuizQueue:      [],
+        dictQuizCurrent:    0,
+        dictQuizItem:       null,
+        dictQuizChoices:    [],
+        dictQuizFeedback:   null,
+        dictQuizLastPicked: null,
+        dictQuizCorrect:    0,
+        dictQuizWrong:      0,
+        dictQuizDone:       false,
+        dictQuizLastResult: null,  // { level, correct, wrong, batchSize, mode, sortDir }
+        // setup
+        dictQuizBatchSize:  10,     // 5 | 10 | 20 | 50 | 0=semua
+        dictQuizMode:       'level', // 'level' | 'cumulative'
+        dictQuizLevel:      1,
+        dictionarySortDir:  'desc',
+      };
+    },
+
+    computed: {
+      currentHal() {
+        const pages = [...new Set(this.dataAwal.filter(i => i.hal).map(i => i.hal))];
+        if (!pages.length) return null;
+        if (pages.length === 1) return String(pages[0]);
+        return pages[0] + '–' + pages[pages.length - 1];
+      },
+      currentSuratAyat() {
+        const pages = [...new Set(this.dataAwal.filter(i => i.hal).map(i => i.hal))];
+        if (!pages.length) return null;
+        const parse = v => { const s = String(v).padStart(6,'0'); return { surat: Number(s.slice(0,3)), ayat: Number(s.slice(3,6)) }; };
+        const first = parse(pages[0]);
+        if (pages.length === 1) return first;
+        const last = parse(pages[pages.length - 1]);
+        return { surat: first.surat, ayat: first.ayat === last.ayat ? first.ayat : first.ayat + '–' + last.ayat };
+      },
+      sortedDictionary() {
+        return this.myDictionary.slice().sort((a, b) => {
+          if (this.dictionarySortDir === 'most-wrong')
+            return (b.wrongCount||0) - (a.wrongCount||0);
+          if (this.dictionarySortDir === 'least-wrong')
+            return (a.wrongCount||0) - (b.wrongCount||0);
+          return (b.timestamp||0) - (a.timestamp||0); // default: terbaru
         });
-      })
-    );
-    return;
-  }
+      },
+      // Daftar level yang tersedia berdasarkan batchSize dan jumlah kamus
+      dictQuizLevels() {
+        const pool = this.sortedDictionary.filter(d => d.arti && d.arab);
+        const total = pool.length;
+        if (!total) return [];
+        const size = this.dictQuizBatchSize || total; // 0 = semua
+        const count = Math.ceil(total / size);
+        return Array.from({ length: count }, (_, i) => {
+          const start = i * size;
+          const end   = Math.min(start + size, total);
+          if (this.dictQuizMode === 'cumulative') {
+            return { level: i+1, label: `Level ${i+1}`, desc: `Kata 1–${end}`, start: 0, end };
+          } else {
+            return { level: i+1, label: `Level ${i+1}`, desc: `Kata ${start+1}–${end}`, start, end };
+          }
+        });
+      },
+      // Apakah dictQuizLastResult masih relevan dengan setting saat ini
+      isLastResultValid() {
+        const r = this.dictQuizLastResult;
+        if (!r) return false;
+        return r.batchSize === this.dictQuizBatchSize
+            && r.mode      === this.dictQuizMode
+            && r.sortDir   === this.dictionarySortDir;
+      },
+      isCurrentWordInDictionary() {
+        if (!this.currentReadingItem || !this.currentReadingItem.arab) return false;
+        return this.myDictionary.some(d => d.arab === this.currentReadingItem.arab);
+      },
+      toastTypeClass() {
+        return this.toastType === 'green' ? 'toast green'
+             : this.toastType === 'red'   ? 'toast red'
+             : 'toast orange';
+      }
+    },
 
-  // 4. Request lain → network biasa
-  event.respondWith(fetch(event.request));
-});
+    watch: {
+      isButtonHeld(v) {
+        if (!v) {
+          this.transparencyTimer = setTimeout(() => { this.isButtonTransparent = true; }, 2000);
+        } else {
+          clearTimeout(this.transparencyTimer);
+          this.isButtonTransparent = false;
+        }
+      },
+      // Reset highlight level terakhir saat setting kuis berubah
+      dictQuizBatchSize() { this.dictQuizLastResult = null; },
+      dictQuizMode()      { this.dictQuizLastResult = null; },
+      dictionarySortDir() { this.dictQuizLastResult = null; },
+    },
 
-// ---- MESSAGE: force update dari UI ----
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+    methods: {
+      /* ---- Header ---- */
+      toggleHeader() {
+        this.isHeaderVisible = !this.isHeaderVisible;
+        clearTimeout(this.transparencyTimer);
+        this.isButtonTransparent = false;
+        this.transparencyTimer = setTimeout(() => {
+          if (!this.isButtonHeld) this.isButtonTransparent = true;
+        }, 1000);
+      },
+
+      /* ---- Helpers ---- */
+      _now() {
+        const d = new Date(), pad = n => String(n).padStart(2,'0');
+        return {
+          ts:   d.getTime(),
+          date: `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,
+          time: `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`,
+        };
+      },
+
+      /* ---- Load data ---- */
+      async _doInsert() {
+        this.loading = true;
+        const now  = this._now();
+        const data = encodeURIComponent(JSON.stringify({ no: now.ts, tanggal: now.date, waktu: now.time, noHalaman: "'" + String(this.noHalaman) }));
+        const url  = `${this.insertUrlBase}?action=insert&table=request&data=${data}`;
+        try {
+          const res  = await fetch(url, { method: 'GET' });
+          const text = await res.text();
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          try { this.raw = JSON.parse(text); } catch(e) { this.raw = text; }
+          await this.doRead();
+        } catch(e) {
+          this.showToastNotification('Gagal: ' + e.message, 'red');
+          this.loading = false;
+        }
+      },
+
+      async doRead() {
+        this.showLoadPageModal = false;
+        const url = `${this.insertUrlBase}?action=read&table=bacakitab`;
+        this.dataFetch = [];
+        try {
+          const res  = await fetch(url, { method: 'GET' });
+          const text = await res.text();
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          let parsed;
+          try { parsed = JSON.parse(text); } catch(e) { console.warn('bukan JSON'); return; }
+          const arr = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.data) ? parsed.data : null);
+          if (!arr || arr.length === 0) {
+            const surat = String(this.noHalaman || '').padStart(6,'0').slice(0,3);
+            const ayat  = String(this.noHalaman || '').padStart(6,'0').slice(3,6);
+            this.showLoadPageModal = true;
+            this.showToastNotification(
+              `Maaf, Surat ${Number(surat)} Ayat ${Number(ayat)} belum tersedia dalam database. Coba surat/ayat lain ya 🙏`,
+              'red'
+            );
+            return;
+          }
+          if (arr) {
+            this.dataFetch = arr;
+            this.dataAwal  = arr;
+            // Reset progress kuis — data baru = mulai dari awal
+            this.feedback  = {};
+            this.answeredWordIndexes = [];
+            this.quizChoices = [];
+            try {
+              localStorage.setItem(NAHWU_STORAGE_KEY, JSON.stringify(arr));
+              localStorage.removeItem(QUIZ_STATE_KEY); // hapus progress lama
+            } catch(e) { console.warn('localStorage penuh:', e); }
+            const surat = String(this.noHalaman || '').padStart(6,'0').slice(0,3);
+            const ayat  = String(this.noHalaman || '').padStart(6,'0').slice(3,6);
+            this.showToastNotification(`✅ Surat ${Number(surat)} Ayat ${Number(ayat)} berhasil dimuat — ${arr.length} kata.`, 'green');
+          }
+        } catch(e) {
+          this.showToastNotification('Gagal memuat: ' + e.message, 'red');
+        } finally {
+          this.loading = false;
+        }
+      },
+
+      /* ---- Toast ---- */
+      showToastNotification(message, type = 'green') {
+        this.toastMessage = message;
+        this.toastType    = type;
+        this.showToast    = true;
+        clearTimeout(this._toastTimer);
+        this._toastTimer  = setTimeout(() => { this.showToast = false; }, 3500);
+      },
+      hideToast() {
+        this.showToast = false;
+        clearTimeout(this._toastTimer);
+      },
+
+      /* ---- Simpan progress kuis ke localStorage ---- */
+      _saveQuizState() {
+        try {
+          localStorage.setItem(QUIZ_STATE_KEY, JSON.stringify({
+            answeredWordIndexes: this.answeredWordIndexes,
+            feedback: this.feedback,
+          }));
+        } catch(e) { console.warn('gagal simpan quiz state', e); }
+      },
+
+      /* ---- Kuis ---- */
+      generateQuizChoices(word) {
+        if (!word || !word.arab) { this.quizChoices = []; return; }
+        let c = [word.arab];
+        if (word.harakatSalah1) c.push(word.harakatSalah1);
+        if (word.harakatSalah2) c.push(word.harakatSalah2);
+        c = Array.from(new Set(c));
+        for (let i = c.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i+1));
+          [c[i], c[j]] = [c[j], c[i]];
+        }
+        this.quizChoices  = c;
+        this.quizFeedback = {};
+      },
+
+      startQuizForWord(idx, word) {
+        this.quizActiveIndex = String(idx);  // pakai quizActiveIndex, bukan activeWordIndex
+        this.quizChoices     = [];
+        this.quizFeedback    = {};
+        this.feedback[String(idx)] = null;
+        this.generateQuizChoices(word);
+        this.clickedWordIndex = null;
+        this.activeBubble     = null;
+      },
+
+      checkQuizAnswer(selected, idx, cidx, word) {
+        if (!word) word = this.dataAwal[idx];
+        if (!word) return;
+        const correct  = selected === word.arab;
+        const indexKey = String(idx);
+
+        this.feedback[indexKey] = { status: correct ? 'correct' : 'wrong', kedudukan: word.kedudukan || '' };
+        this.quizFeedback = {};
+        this.quizFeedback[cidx] = correct ? 'correct' : 'wrong';
+
+        if (!this.answeredWordIndexes.includes(indexKey)) this.answeredWordIndexes.push(indexKey);
+
+        this.showToastNotification(word.kedudukan || (correct ? 'Benar!' : 'Salah'), correct ? 'green' : 'red');
+
+        // Simpan progress ke localStorage
+        this._saveQuizState();
+
+        this.quizActiveIndex  = null;  // tutup pilihan kuis
+        this.clickedWordIndex = null;
+
+        clearTimeout(this._quizTimer);
+        this._quizTimer = setTimeout(() => { this.quizChoices = []; this.quizFeedback = {}; }, 55000);
+      },
+
+      /* ---- Modal review kuis (kata sudah dijawab) ---- */
+      openQuizReview(item, idx) {
+        this.quizReviewItem = item;
+        this.quizReviewIdx  = String(idx);
+        this.showQuizReview = true;
+      },
+
+      /* ---- Word click — mode normal saja (kuis punya handler sendiri) ---- */
+      handleWordClick(item, idx, event) {
+        this.clickedWordIndex = String(idx);
+        this.activeBubble     = { item };
+        try { if (event && event.currentTarget) event.currentTarget.focus(); } catch(e) {}
+      },
+
+      closeBubble() {
+        this.activeBubble     = null;
+        this.clickedWordIndex = null;
+        this.quizActiveIndex  = null;
+        // activeWordIndex TIDAK direset di sini — itu milik TTS
+      },
+
+      /* ======================================================
+         MODE BACA — startReading / stopReading / skipReading
+         ====================================================== */
+      startReading(data, startIndex = 0) {
+        try { window.speechSynthesis.cancel(); } catch(e) {}
+        this._readData    = data;
+        this._readCurrent = Number(startIndex) || 0;
+        this.isSpeaking   = true;
+        this.isPaused     = false;
+        this._speakNext();
+      },
+
+      // Muat voices — tunggu sampai tersedia (penting untuk Android)
+      _loadVoices() {
+        return new Promise((resolve) => {
+          const voices = window.speechSynthesis.getVoices();
+          if (voices.length > 0) { resolve(voices); return; }
+          window.speechSynthesis.onvoiceschanged = () => resolve(window.speechSynthesis.getVoices());
+          setTimeout(() => resolve(window.speechSynthesis.getVoices()), 1000);
+        });
+      },
+
+      // Pilih voice Indonesia terbaik dari daftar yang tersedia
+      _findVoice(voices) {
+        const priority = [
+          v => v.lang === 'id-ID',
+          v => v.lang && v.lang.toLowerCase().startsWith('id'),
+          v => v.name && v.name.toLowerCase().includes('indonesia'),
+          v => v.name && v.name.toLowerCase().includes('id'),
+        ];
+        for (const test of priority) {
+          const found = voices.find(test);
+          if (found) return found;
+        }
+        return voices.length > 0 ? voices[0] : null;
+      },
+
+      // Speak satu utterance — async voice loading + polling fallback Android
+      async _speakOne(text, onDone) {
+        if (!text || !text.trim() || !this.isSpeaking) { onDone(); return; }
+
+        // Tunggu voices siap (kritis di Android)
+        const voices  = await this._loadVoices();
+        const idVoice = this._findVoice(voices);
+
+        const u    = new SpeechSynthesisUtterance(text);
+        u.lang     = idVoice ? idVoice.lang : 'id-ID';
+        u.rate     = this.readingSpeed;
+        u.pitch    = 1;
+        u.volume   = 1;
+        if (idVoice) u.voice = idVoice;
+
+        let done   = false;
+        let pollId = null;
+
+        const finish = () => {
+          if (done) return;
+          done = true;
+          clearInterval(pollId);
+          onDone();
+        };
+
+        u.onend   = finish;
+        u.onerror = finish;
+
+        // Cancel dulu sebelum speak — cegah queue stuck di Android
+        window.speechSynthesis.cancel();
+
+        // Delay 50ms sebelum speak — trick agar Android tidak silent
+        setTimeout(() => {
+          try {
+            window.speechSynthesis.speak(u);
+          } catch(e) {
+            console.warn('speak error:', e);
+            finish();
+          }
+        }, 50);
+
+        // Polling fallback: cek setiap 300ms apakah synthesis sudah idle
+        // Android Chrome sering tidak trigger onend
+        pollId = setInterval(() => {
+          if (!this.isSpeaking) { clearInterval(pollId); window.speechSynthesis.cancel(); return; }
+          if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+            finish();
+          }
+        }, 300);
+      },
+
+      _speakNext() {
+        if (!this.isSpeaking || this._readCurrent >= this._readData.length) {
+          this.isSpeaking         = false;
+          this.activeWordIndex    = null;
+          this.currentReadingItem = null;
+          return;
+        }
+
+        const item = this._readData[this._readCurrent];
+        // Skip sentinel NL
+        if (item.noHarokat === 'NL' || item.arab === 'NL') {
+          this._readCurrent++;
+          this._speakNext();
+          return;
+        }
+        this.activeWordIndex    = String(this._readCurrent);
+        this.pausedWordIndex    = String(this._readCurrent); // auto-save posisi
+        this.currentReadingItem = item;
+        // Simpan posisi ke localStorage tiap kata (survive refresh)
+        try { localStorage.setItem(READ_STATE_KEY, String(this._readCurrent)); } catch(e) {}
+
+        this.$nextTick(() => {
+          const el = document.querySelector(`[data-key="${this._readCurrent}"]`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+
+        const arabText  = item.arab  || item.noHarokat || '';
+        const artiText  = item.arti  || '';
+        const latinText = item.latin || '';
+        const mode      = this.readMode;
+
+        // Selesai satu kata → jeda sesuai setting lalu lanjut
+        const next = () => {
+          this._readCurrent++;
+          if (this.isSpeaking) setTimeout(() => this._speakNext(), this.readingDelayWord);
+        };
+
+        // Pilih urutan segmen sesuai mode
+        let segments = [];
+        if      (mode === 'arab')            segments = [arabText];
+        else if (mode === 'arti')            segments = [artiText];
+        else if (mode === 'latin')           segments = [latinText || arabText];
+        else if (mode === 'latin-arti')      segments = [latinText || arabText, artiText];
+        else if (mode === 'arab-arti')       segments = [arabText, artiText];
+        else if (mode === 'arab-latin-arti') segments = [arabText, latinText || arabText, artiText];
+        else                                 segments = [arabText];
+
+        // Hapus segmen kosong
+        segments = segments.filter(s => s && s.trim());
+
+        // Baca segmen satu per satu secara rekursif (async-safe)
+        const speakChain = async (idx) => {
+          if (idx >= segments.length || !this.isSpeaking) { next(); return; }
+          await new Promise(resolve => {
+            this._speakOne(segments[idx], () => {
+              setTimeout(resolve, this.readingDelaySegment);
+            });
+          });
+          speakChain(idx + 1);
+        };
+
+        speakChain(0);
+      },
+
+      stopReading() {
+        this.isSpeaking         = false;
+        this.isPaused           = false;
+        this.activeWordIndex    = null;
+        this.currentReadingItem = null;
+        try { window.speechSynthesis.cancel(); } catch(e) {}
+      },
+
+      pauseReading() {
+        if (!this.isSpeaking || this.isPaused) return;
+        try { window.speechSynthesis.cancel(); } catch(e) {}
+        this.isSpeaking      = false;
+        this.isPaused        = true;
+        this.pausedWordIndex = String(this._readCurrent);
+        // Simpan posisi ke localStorage agar survive refresh
+        try { localStorage.setItem(READ_STATE_KEY, String(this._readCurrent)); } catch(e) {}
+      },
+
+      resumeReading() {
+        if (!this.isPaused) return;
+        this.isPaused    = false;
+        this.isSpeaking  = true;
+        this._readCurrent = Number(this.pausedWordIndex) || 0;
+        this._speakNext();
+      },
+
+      resumeFromPause() {
+        // Dipanggil dari mini-bar saat tidak sedang baca
+        if (this.pausedWordIndex === null) return;
+        this._readData    = this.dataAwal;
+        this._readCurrent = Number(this.pausedWordIndex) || 0;
+        this.isPaused     = false;
+        this.isSpeaking   = true;
+        this._speakNext();
+      },
+
+      clearPause() {
+        this.pausedWordIndex = null;
+        try { localStorage.removeItem(READ_STATE_KEY); } catch(e) {}
+      },
+
+      // delta: +1 lewati, -1 ulang kata ini
+      skipReading(delta) {
+        try { window.speechSynthesis.cancel(); } catch(e) {}
+        if (delta === -1) {
+          // tetap di kata yang sama (speakNext akan membacanya ulang)
+        } else {
+          this._readCurrent = Math.min(this._readCurrent + 1, this._readData.length - 1);
+        }
+        if (this.isSpeaking) this._speakNext();
+      },
+
+      // dipanggil saat user mengubah kecepatan lewat reading bar
+      changeSpeedLive() {
+        // langsung berlaku di utterance berikutnya (tidak perlu restart)
+      },
+
+      /* ---- PWA Install ---- */
+      pwaDoInstall() {
+        if (!this.pwaInstallPrompt) return;
+        this.pwaInstallPrompt.prompt();
+        this.pwaInstallPrompt.userChoice.then(result => {
+          console.log('[PWA] Install choice:', result.outcome);
+          this.pwaInstallPrompt = null;
+        });
+      },
+
+      /* ---- Warna Nahwu ---- */
+      _nahwuColor(kedudukan) {
+        if (!kedudukan) return '';
+        const k = kedudukan.toLowerCase();
+
+        // --- WHITELIST ISIM ---
+        const isimKeywords = [
+          'mubtada','khobar','khabar',
+          "fa'il","fa’il","naibul fa'il","naib","naibul",
+          "maf'ul bih","maf'ul mutlaq","maf'ul fih","maf'ul liajlih","maf'ul ma'ah","maf'ul",
+          'haal','hal','tamyiz','munada','mustatsna',
+          'badal',"'athaf",'athaf',"na'at",'taukid',
+          'mudhaf ilaih','mudhaf',
+          'isim isyarat','isim maushul','isim','dhomir','dhamir',
+          'zharaf','zharf','dharaf',
+        ];
+
+        // --- WHITELIST FI'IL ---
+        const fiilKeywords = [
+          "fi'il madhi","fi'il mudhari","fi'il amr","fi'il nahi",
+          "fi'il mabni","fi'il mu'rab","fi'il",
+          'fiil',
+        ];
+
+        // --- WHITELIST HURUF ---
+        const hurufKeywords = [
+          'huruf jar','huruf athaf','huruf nida','huruf istifham',
+          'huruf nafi','huruf syarat','huruf taukid','huruf nashab',
+          'huruf jazm','huruf muqattha','huruf istisna','huruf qasam',
+          'huruf','harf',
+        ];
+
+        // Cek fi'il dulu (prioritas tertinggi)
+        const hasFiil  = fiilKeywords.some(w => k.includes(w));
+
+        // Cek isim
+        const hasIsim  = isimKeywords.some(w => k.includes(w));
+
+        // Cek huruf
+        const hasHuruf = hurufKeywords.some(w => k.includes(w));
+
+        if (hasFiil)             return 'nahwu-fiil';   // fi'il menang segalanya
+        if (hasHuruf && hasIsim) return 'nahwu-isim';   // campuran huruf+isim → isim
+        if (hasHuruf)            return 'nahwu-huruf';  // huruf murni
+        if (hasIsim)             return 'nahwu-isim';   // isim murni
+        return 'nahwu-isim';                            // default: anggap isim
+      },
+
+      /* ---- Manual Input ---- */
+      _parseManualJson() {
+        try {
+          const t = this.manualJsonText.trim();
+          if (!t) return null;
+          // strip markdown fences jika ada
+          const clean = t.replace(/^```json|^```|```$/gm, '').trim();
+          const arr = JSON.parse(clean);
+          if (!Array.isArray(arr) || arr.length === 0) return null;
+          return arr;
+        } catch(e) { return null; }
+      },
+
+      _normalizeManualData(arr) {
+        return arr.map((it, i) => ({
+          no:           it.no || (i + 1),
+          arab:         it.arab || it.noHarokat || '',
+          noHarokat:    it.noHarokat || it.arab || '',
+          arti:         it.arti || '',
+          kedudukan:    it.kedudukan || '',
+          latin:        it.latin || '',
+          harakatSalah1: it.harakatSalah1 || '',
+          harakatSalah2: it.harakatSalah2 || '',
+          hal:          it.hal || 0,
+          row:          it.row || (i + 1),
+        }));
+      },
+
+      _manualLoad(save = false) {
+        const arr = this._parseManualJson();
+        if (!arr) return;
+        const normalized = this._normalizeManualData(arr);
+
+        if (save) {
+          const key = 'manualData_' + (this.manualSaveName || new Date().toISOString().replace(/\D/g,'').slice(0,12));
+          try {
+            localStorage.setItem(key, JSON.stringify(normalized));
+            this.showToastNotification(`💾 Disimpan sebagai "${key.replace('manualData_','')}"`, 'green');
+          } catch(e) {
+            this.showToastNotification('Gagal simpan: localStorage penuh.', 'red');
+          }
+        }
+
+        // Muat ke app
+        this.dataAwal  = normalized;
+        this.dataFetch = normalized;
+        this.feedback  = {};
+        this.answeredWordIndexes = [];
+        this.quizChoices = [];
+        try {
+          localStorage.setItem(NAHWU_STORAGE_KEY, JSON.stringify(normalized));
+          localStorage.removeItem(QUIZ_STATE_KEY);
+        } catch(e) {}
+
+        this.showManualInput = false;
+        this.manualJsonText  = '';
+        this.showToastNotification(`✅ ${normalized.length} kata berhasil dimuat dari input manual.`, 'green');
+      },
+
+      _loadManualSavedList() {
+        const list = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('manualData_')) {
+            try {
+              const data = JSON.parse(localStorage.getItem(key));
+              const name = key.replace('manualData_', '');
+              // Format nama yyyymmddHHMM → tanggal manusiawi
+              let date = name;
+              if (/^\d{12}$/.test(name)) {
+                date = `${name.slice(6,8)}/${name.slice(4,6)}/${name.slice(0,4)} ${name.slice(8,10)}:${name.slice(10,12)}`;
+              }
+              list.push({ key, count: Array.isArray(data) ? data.length : '?', date });
+            } catch(e) {}
+          }
+        }
+        list.sort((a,b) => b.key.localeCompare(a.key));
+        this.manualSavedList = list;
+      },
+
+      _manualLoadSaved(key) {
+        try {
+          const data = JSON.parse(localStorage.getItem(key));
+          if (!Array.isArray(data)) throw new Error('bukan array');
+          this.dataAwal  = data;
+          this.dataFetch = data;
+          this.feedback  = {};
+          this.answeredWordIndexes = [];
+          this.quizChoices = [];
+          localStorage.setItem(NAHWU_STORAGE_KEY, JSON.stringify(data));
+          localStorage.removeItem(QUIZ_STATE_KEY);
+          this.showManualInput = false;
+          this.showToastNotification(`✅ "${key.replace('manualData_','')}" dimuat — ${data.length} kata.`, 'green');
+        } catch(e) {
+          this.showToastNotification('Gagal memuat data: ' + e.message, 'red');
+        }
+      },
+
+      _manualDeleteSaved(key) {
+        if (!confirm(`Hapus data "${key.replace('manualData_','')}"?`)) return;
+        localStorage.removeItem(key);
+        this._loadManualSavedList();
+        this.showToastNotification('Data dihapus.', 'green');
+      },
+
+      _promptFotoText() {
+        return `Tolong ekstrak semua teks Arab dari gambar ini.
+
+ATURAN:
+1. Keluarkan HANYA teks Arab murni, tanpa terjemahan atau penjelasan
+2. Pertahankan urutan baca kanan ke kiri
+3. Sertakan harakat/tanda baca Arab jika terlihat jelas di gambar
+4. Pisahkan setiap ayat/kalimat dengan baris baru
+5. Jangan tambahkan nomor atau simbol apapun
+
+Keluarkan HANYA teks Arabnya saja.`;
+      },
+
+      _copyPromptSub() {
+        const text = this.manualPromptSub === 'foto' ? this._promptFotoText() : this._manualPromptText();
+        navigator.clipboard.writeText(text)
+          .then(() => this.showToastNotification(
+            this.manualPromptSub === 'foto'
+              ? '📷 Prompt foto disalin! Upload foto ke Gemini/ChatGPT lalu paste.'
+              : '🔬 Prompt Nahwu disalin! Paste teks Arab + prompt ini ke AI.',
+            'green'))
+          .catch(() => this.showToastNotification('Gagal copy. Coba pilih manual.', 'red'));
+      },
+
+      _manualPromptText() {
+        return `Kamu adalah ahli ilmu Nahwu dan Sharaf bahasa Arab.
+
+Analisis setiap kata dari teks Arab berikut. Untuk setiap kata hasilkan JSON object dengan field:
+- "no": nomor urut (integer)
+- "arab": kata Arab LENGKAP dengan harakat yang BENAR sesuai kedudukan nahwu (contoh: "تَفْسِيْرُ")
+- "noHarokat": kata Arab TANPA harakat sama sekali (contoh: "تفسير")
+- "arti": arti kata dalam bahasa Indonesia (singkat, 1-4 kata)
+- "kedudukan": kedudukan nahwu lengkap (contoh: "Mubtada' - Marfu' - tanda rafa' dhammah")
+- "latin": transliterasi latin (contoh: "tafsiiru")
+- "harakatSalah1": variasi harakat SALAH pada kata yang SAMA (contoh jika benar "تَفْسِيْرُ" maka salah bisa "تَفْسِيْرَ")
+- "harakatSalah2": variasi harakat SALAH lainnya
+
+ATURAN PENTING:
+1. "arab" harus berharakat BENAR sesuai posisi I'rab
+2. "harakatSalah1" dan "harakatSalah2" harus kata yang SAMA tapi harakat akhir BERBEDA
+3. "noHarokat" harus benar-benar tanpa harakat (strip semua tanda baca Arab)
+4. Keluarkan HANYA JSON array, tanpa penjelasan, tanpa markdown
+
+Teks Arab yang dianalisis:
+"""
+[PASTE TEKS ARAB DI SINI]
+"""`;
+      },
+
+
+
+      /* ---- API Key ---- */
+      openApiKeyModal()  { this.tempApiKey = localStorage.getItem(API_KEY_STORAGE_KEY) || ''; this.showApiKeyModal = true; },
+      closeApiKeyModal() { this.showApiKeyModal = false; this.tempApiKey = ''; },
+      async saveApiKey() {
+        if (!this.tempApiKey) return;
+        localStorage.setItem(API_KEY_STORAGE_KEY, this.tempApiKey.trim());
+        this.isApiKeySet    = true;
+        this.showApiKeyModal = false;
+        this.showToastNotification('API Key disimpan — menginisialisasi...', 'green');
+        await this.initGeminiClient();
+      },
+      async initGeminiClient() {
+        const key = localStorage.getItem(API_KEY_STORAGE_KEY);
+        if (!key) { this.showToastNotification('API Key tidak ditemukan.', 'red'); return; }
+        this.loading = true; this.loadingMessage = 'Menginisialisasi Gemini...';
+        try {
+          const mod = await import('https://unpkg.com/@google/genai?module');
+          if (!mod || !mod.GoogleGenAI) throw new Error('Modul tidak tersedia');
+          this.aiClient = new mod.GoogleGenAI({ apiKey: key });
+          this.showToastNotification('AI client siap.', 'green');
+        } catch(err) {
+          this.aiClient = null;
+          this.showToastNotification('Gagal init AI. OCR lokal akan digunakan.', 'orange');
+        } finally {
+          this.loading = false; this.loadingMessage = 'Memproses...';
+        }
+      },
+
+      /* ---- Scan ---- */
+      onScanCamera() {
+        const el = document.getElementById('ocr-upload-camera');
+        if (el) { el.value = ''; el.click(); }
+      },
+      onScanGallery() {
+        const el = document.getElementById('ocr-upload-gallery');
+        if (el) { el.value = ''; el.click(); }
+      },
+
+      async handleImageUpload(event) {
+        this.loading = true; this.loadingMessage = 'Memproses gambar...';
+        const file = event.target.files && event.target.files[0];
+        if (!file) { this.loading = false; this.showToastNotification('File tidak ditemukan.', 'red'); return; }
+        this.dataAwal = []; this.closeBubble();
+
+        const persistResults = (arr, note) => {
+          this.dataAwal = arr;
+          try { localStorage.setItem(NAHWU_STORAGE_KEY, JSON.stringify(arr)); } catch(e) {}
+          this.showToastNotification(note || 'Selesai', 'green');
+        };
+
+        try {
+          this.loadingMessage = 'Membaca file...';
+          const base64 = await new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onload  = () => resolve(String(r.result||'').split(',')[1]||'');
+            r.onerror = reject;
+            r.readAsDataURL(file);
+          });
+
+          if (this.aiClient) {
+            try {
+              this.loadingMessage = '1/2: OCR via Gemini...';
+              const visionResp = await this.aiClient.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: [{ inlineData: { data: base64, mimeType: file.type } }, { text: 'Ekstrak semua teks Arab yang terlihat jelas. Keluarkan hanya teks Arab mentah.' }],
+              });
+              let rawText = String(visionResp && (visionResp.text || visionResp.output_text || '')).trim();
+              if (!rawText) throw new Error('Teks Arab tidak terdeteksi.');
+
+              this.loadingMessage = '2/2: Analisis Nahwu...';
+              const nahwuPrompt = `Kamu adalah ahli ilmu Nahwu dan Sharaf bahasa Arab.
+
+Analisis setiap kata dari teks Arab berikut. Untuk setiap kata hasilkan JSON object dengan field:
+- "no": nomor urut (integer)
+- "arab": kata Arab LENGKAP dengan harakat yang BENAR sesuai kedudukan nahwu (contoh: "تَفْسِيْرُ")
+- "noHarokat": kata Arab TANPA harakat sama sekali (contoh: "تفسير")
+- "arti": arti kata dalam bahasa Indonesia (singkat, 1-4 kata)
+- "kedudukan": kedudukan nahwu lengkap (contoh: "Mubtada' - Marfu' - tanda rafa' dhammah")
+- "latin": transliterasi latin (contoh: "tafsiiru")
+- "harakatSalah1": variasi harakat SALAH pada kata yang SAMA — HARUS berbeda dari field "arab" (contoh jika benar "تَفْسِيْرُ" maka salah bisa "تَفْسِيْرَ")
+- "harakatSalah2": variasi harakat SALAH lainnya — HARUS berbeda dari "arab" dan "harakatSalah1"
+
+ATURAN PENTING:
+1. "arab" harus berharakat BENAR sesuai posisi I'rab
+2. "harakatSalah1" dan "harakatSalah2" harus kata yang SAMA tapi harakat akhir BERBEDA (ganti dhammah→fathah, kasrah→dhammah, dst)
+3. "noHarokat" harus benar-benar tanpa harakat (strip semua tanda baca Arab)
+4. Keluarkan HANYA JSON array, tanpa penjelasan, tanpa markdown
+
+Contoh output yang benar:
+[
+  {
+    "no": 1,
+    "arab": "تَفْسِيْرُ",
+    "noHarokat": "تفسير",
+    "arti": "Tafsir / Penjelasan",
+    "kedudukan": "Mubtada' - Marfu' - tanda rafa' dhammah - Mudhaf",
+    "latin": "tafsiiru",
+    "harakatSalah1": "تَفْسِيْرَ",
+    "harakatSalah2": "تَفْسِيْرِ"
+  },
+  {
+    "no": 2,
+    "arab": "سُوْرَةِ",
+    "noHarokat": "سورة",
+    "arti": "Surah",
+    "kedudukan": "Mudhaf Ilaih - Majrur - tanda jar kasrah",
+    "latin": "suurati",
+    "harakatSalah1": "سُوْرَةُ",
+    "harakatSalah2": "سُوْرَةَ"
   }
-});
+]
+
+Teks Arab yang dianalisis:
+"""${rawText}"""`;
+
+              const nahwuResp = await this.aiClient.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: [{ role:'user', parts:[{ text: nahwuPrompt }] }],
+                config: { systemInstruction: 'Kamu ahli nahwu. Keluarkan HANYA JSON array sesuai schema. Jangan tambahkan teks lain, markdown, atau komentar.', responseMimeType: 'application/json' }
+              });
+              let js = String(nahwuResp && (nahwuResp.text || nahwuResp.output_text || '')).trim();
+              const f = js.indexOf('['), l = js.lastIndexOf(']');
+              if (f !== -1 && l > f) js = js.slice(f, l+1);
+              const parsed = JSON.parse(js);
+              if (!Array.isArray(parsed)) throw new Error('Bukan array JSON.');
+              const normalized = parsed.map((it,i) => ({
+                no: it.no||(i+1), arab: it.arab||it.noHarokat||'', arti: it.arti||'',
+                kedudukan: it.kedudukan||'', noHarokat: it.noHarokat||it.arab||'',
+                latin: it.latin||'', harakatSalah1: it.harakatSalah1||'', harakatSalah2: it.harakatSalah2||''
+              }));
+              persistResults(normalized, `Gemini selesai: ${normalized.length} kata.`);
+              this.loading = false; return;
+            } catch(gerr) {
+              console.warn('Gemini gagal, fallback Tesseract:', gerr);
+              this.showToastNotification('Gemini gagal, pakai OCR lokal.', 'orange');
+            }
+          }
+
+          this.loadingMessage = 'OCR lokal (Tesseract)...';
+          const tRes = await Tesseract.recognize(file, 'ara', { logger: m => {} });
+          const rawLocal = String((tRes && tRes.data && tRes.data.text) || '').trim();
+          if (!rawLocal) throw new Error('OCR lokal gagal.');
+          const tokens = rawLocal.split(/\s+/).filter(Boolean);
+          persistResults(tokens.map((t,i) => ({ no:i+1, arab:t, arti:'', kedudukan:'', noHarokat:t, latin:'' })),
+            `OCR lokal: ${tokens.length} kata.`);
+        } catch(err) {
+          this.showToastNotification(err.message || 'Gagal memproses gambar.', 'red');
+          const saved = localStorage.getItem(NAHWU_STORAGE_KEY);
+          if (saved && !this.dataAwal.length) try { this.dataAwal = JSON.parse(saved); } catch(e) {}
+        } finally {
+          this.loading = false; this.loadingMessage = 'Memproses...';
+          ['ocr-upload-camera','ocr-upload-gallery','ocr-upload'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.value = '';
+          });
+        }
+      },
+
+      /* ---- Simpan kata aktif dari reading bar ke kamus ---- */
+      saveCurrentWordToDictionary() {
+        if (!this.currentReadingItem) return;
+        this.addToMyDictionary(this.currentReadingItem);
+      },
+
+      /* ---- Kamus ---- */
+      addToMyDictionary(item) {
+        if (!item || !item.arab) return;
+        if (this.myDictionary.some(d => d.arab === item.arab))
+          return this.showToastNotification('Sudah ada di kamus.', 'orange');
+        this.myDictionary.unshift({ ...item, timestamp: Date.now() });
+        localStorage.setItem('myDictionary', JSON.stringify(this.myDictionary));
+        this.showToastNotification('Disimpan ke kamus.', 'green');
+        this.closeBubble();
+      },
+      removeFromDictionaryByTimestamp(ts) {
+        const i = this.myDictionary.findIndex(d => d.timestamp === ts);
+        if (i !== -1 && confirm('Hapus kata ini dari kamus?')) {
+          this.myDictionary.splice(i, 1);
+          localStorage.setItem('myDictionary', JSON.stringify(this.myDictionary));
+          this.showToastNotification('Terhapus.', 'green');
+        }
+      },
+
+      /* ---- Kuis Kamus ---- */
+      openDictQuizSetup() {
+        const pool = this.sortedDictionary.filter(d => d.arti && d.arab);
+        if (pool.length < 2) {
+          this.showToastNotification('Minimal 2 kata yang punya arti untuk kuis.', 'orange');
+          return;
+        }
+        this.showDictionary    = false;
+        this.showDictQuizSetup = true;
+      },
+
+      startDictQuiz(levelObj) {
+        const pool = this.sortedDictionary.filter(d => d.arti && d.arab);
+        // Potong sesuai range level
+        const slice = pool.slice(levelObj.start, levelObj.end);
+
+        // Acak urutan slice
+        const shuffled = slice.slice();
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i+1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        this.dictQuizQueue      = shuffled;
+        this.dictQuizCurrent    = 0;
+        this.dictQuizCorrect    = 0;
+        this.dictQuizWrong      = 0;
+        this.dictQuizDone       = false;
+        this.dictQuizFeedback   = null;
+        this.dictQuizLastPicked = null;
+        this.dictQuizLevel      = levelObj.level;
+        this.showDictQuizSetup  = false;
+
+        this._loadDictQuizItem();
+        this.showDictQuiz = true;
+      },
+
+      _loadDictQuizItem() {
+        const item = this.dictQuizQueue[this.dictQuizCurrent];
+        this.dictQuizItem       = item;
+        this.dictQuizFeedback   = null;
+        this.dictQuizLastPicked = null;
+
+        // Buat pilihan: jawaban benar + maks 3 pengecoh dari pool lain
+        const others = this.dictQuizQueue
+          .filter(d => d.arab !== item.arab && d.arti !== item.arti)
+          .slice();
+        for (let i = others.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [others[i], others[j]] = [others[j], others[i]];
+        }
+        const choices = [item.arti, ...others.slice(0, 3).map(d => d.arti)];
+        // Acak urutan pilihan
+        for (let i = choices.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [choices[i], choices[j]] = [choices[j], choices[i]];
+        }
+        this.dictQuizChoices = choices;
+      },
+
+      checkDictQuizAnswer(choice) {
+        if (this.dictQuizFeedback !== null) return;
+        const correct = choice === this.dictQuizItem.arti;
+        this.dictQuizFeedback   = correct ? 'correct' : 'wrong';
+        this.dictQuizLastPicked = choice;
+
+        if (correct) {
+          this.dictQuizCorrect++;
+        } else {
+          this.dictQuizWrong++;
+          // Masukkan kata salah ke ujung antrian agar muncul lagi
+          this.dictQuizQueue.push({ ...this.dictQuizItem });
+        }
+
+        // Update skor di kamus (wrongCount / correctCount)
+        const idx = this.myDictionary.findIndex(d => d.arab === this.dictQuizItem.arab);
+        if (idx !== -1) {
+          const entry = { ...this.myDictionary[idx] };
+          entry[correct ? 'correctCount' : 'wrongCount'] = (entry[correct ? 'correctCount' : 'wrongCount'] || 0) + 1;
+          this.myDictionary.splice(idx, 1, entry);
+          localStorage.setItem('myDictionary', JSON.stringify(this.myDictionary));
+        }
+      },
+
+      nextDictQuiz() {
+        this.dictQuizCurrent++;
+        if (this.dictQuizCurrent >= this.dictQuizQueue.length) {
+          // Simpan hasil level ini sebelum tampil layar selesai
+          this.dictQuizLastResult = {
+            level:     this.dictQuizLevel,
+            correct:   this.dictQuizCorrect,
+            wrong:     this.dictQuizWrong,
+            batchSize: this.dictQuizBatchSize,
+            mode:      this.dictQuizMode,
+            sortDir:   this.dictionarySortDir,
+          };
+          this.dictQuizDone = true;
+        } else {
+          this._loadDictQuizItem();
+        }
+      },
+
+      /* ---- Font ---- */
+      changeFontSize(delta) {
+        this.fontSizeArabic  = Math.max(14, this.fontSizeArabic + delta);
+        this.fontSizeMeaning = Math.max(8, Math.floor(this.fontSizeArabic * 0.4));
+        try {
+          localStorage.setItem('fontSizeArabic',  String(this.fontSizeArabic));
+          localStorage.setItem('fontSizeMeaning', String(this.fontSizeMeaning));
+        } catch(e) {}
+      },
+
+      /* ---- Misc ---- */
+      copyArabicText() {
+        const txt = this.dataAwal.map(d => d.arab || d.noHarokat).join(' ');
+        navigator.clipboard.writeText(txt)
+          .then(()  => this.showToastNotification('Teks Arab disalin.', 'green'))
+          .catch(()  => this.showToastNotification('Gagal menyalin.', 'red'));
+      },
+      toggleTheme() {
+        this.theme = this.theme === 'light' ? 'dark' : 'light';
+        localStorage.setItem('theme', this.theme);
+        document.body.className = this.theme;
+      },
+    },
+
+    mounted() {
+      document.body.className = this.theme;
+      try {
+        const saved = localStorage.getItem(NAHWU_STORAGE_KEY);
+        if (saved) {
+          const p = JSON.parse(saved);
+          if (Array.isArray(p)) { this.dataAwal = p; this.showToastNotification('Data lokal dimuat.', 'green'); }
+        }
+      } catch(e) {}
+      if (this.isApiKeySet) this.initGeminiClient();
+
+      // PWA install prompt
+      window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault();
+        this.pwaInstallPrompt = e;
+      });
+      window.addEventListener('appinstalled', () => {
+        this.pwaInstallPrompt = null;
+        this.showToastNotification('✅ BacaKitab berhasil diinstall!', 'green');
+      });
+
+      // pastikan voices sudah ready — Android perlu onvoiceschanged
+      if (window.speechSynthesis) {
+        window.speechSynthesis.getVoices();
+        window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+      }
+    },
+
+    beforeUnmount() {
+      clearTimeout(this.transparencyTimer);
+      this.stopReading();
+    },
+  });
+})();
+</script>
+  <script>
+    // ---- Register Service Worker ----
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/bacaKitab/sw.js', { scope: '/bacaKitab/' })
+          .then(async reg => {
+            console.log('[SW] Registered, scope:', reg.scope);
+            reg.addEventListener('updatefound', () => {
+              const newSW = reg.installing;
+              newSW.addEventListener('statechange', () => {
+                if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('[SW] Update tersedia.');
+                }
+              });
+            });
+          })
+          .catch(err => console.warn('[SW] Gagal register:', err));
+      });
+    }
+
+    // ---- DEBUG BANNER ----
+    // Tampil sebentar saat app dibuka — konfirmasi URL & SW aktif
+    window.addEventListener('load', async () => {
+      const currentUrl  = window.location.href;
+      const isCorrect   = currentUrl === 'https://nu2883.github.io/bacaKitab/'
+                       || currentUrl === 'https://nu2883.github.io/bacaKitab/index.html';
+      const swActive    = !!navigator.serviceWorker?.controller;
+
+      // Ambil manifest version
+      let manifestStart = '?';
+      try {
+        const r = await fetch('/bacaKitab/manifest.json?t=' + Date.now());
+        const m = await r.json();
+        manifestStart = m.start_url || '?';
+      } catch(e) {}
+
+      const banner = document.createElement('div');
+      banner.id = 'pwa-debug';
+      banner.style.cssText = `
+        position:fixed; bottom:0; left:0; right:0; z-index:99999;
+        background:${isCorrect ? '#16a34a' : '#dc2626'};
+        color:#fff; font-family:monospace; font-size:11px;
+        padding:8px 12px; line-height:1.6;
+      `;
+      banner.innerHTML = `
+        <div style="font-weight:bold;font-size:13px">${isCorrect ? '✅ PWA OK' : '❌ URL SALAH — Hapus shortcut & install ulang!'}</div>
+        <div>URL aktif : <b>${currentUrl}</b></div>
+        <div>manifest start_url: <b>${manifestStart}</b></div>
+        <div>SW aktif : <b>${swActive ? 'Ya ✅' : 'Belum (refresh sekali lagi)'}</b></div>
+        <div style="margin-top:4px;opacity:0.7">Banner ini hilang otomatis dalam 10 detik</div>
+      `;
+      document.body.appendChild(banner);
+      setTimeout(() => banner.remove(), 10000);
+    });
+  </script>
+</body>
+</html>
