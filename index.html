@@ -2234,6 +2234,11 @@ Teks Arab yang dianalisis:
 
     // ---- DEBUG BANNER ----
     // Tampil sebentar saat app dibuka — konfirmasi URL & SW aktif
+    // Unlock screen orientation — izinkan auto rotate
+    if (screen.orientation && screen.orientation.unlock) {
+      screen.orientation.unlock();
+    }
+
     window.addEventListener('load', async () => {
       const currentUrl  = window.location.href;
       const isCorrect   = currentUrl === 'https://nu2883.github.io/bacaKitab/'
