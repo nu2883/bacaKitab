@@ -1157,10 +1157,10 @@
         activeWordIndex:    null,   // index kata yang SEDANG DIBACA (highlight TTS)
         pausedWordIndex:    (() => { try { return localStorage.getItem(READ_STATE_KEY) || null; } catch(e) { return null; } })(),
         quizActiveIndex:    null,   // index kata yang SEDANG DIKUIS (tampilkan pilihan jawaban)
-        readMode:           'arab-arti',
+        readMode:           'arab-latin-arti',
         readingSpeed:       1.0,
-        readingDelayWord:   600,
-        readingDelaySegment: 400,
+        readingDelayWord:   0,
+        readingDelaySegment: 0,
         _readCurrent:       0,
         _readData:          [],
         currentReadingItem: null,
@@ -2217,14 +2217,13 @@ Teks Arab yang dianalisis:
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/bacaKitab/sw.js', { scope: '/bacaKitab/' })
-          .then(reg => {
+          .then(async reg => {
             console.log('[SW] Registered, scope:', reg.scope);
-            // Cek update SW tersedia
             reg.addEventListener('updatefound', () => {
               const newSW = reg.installing;
               newSW.addEventListener('statechange', () => {
                 if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('[SW] Update tersedia — refresh untuk update.');
+                  console.log('[SW] Update tersedia.');
                 }
               });
             });
@@ -2232,6 +2231,41 @@ Teks Arab yang dianalisis:
           .catch(err => console.warn('[SW] Gagal register:', err));
       });
     }
+
+    // ---- DEBUG BANNER ----
+    // Tampil sebentar saat app dibuka — konfirmasi URL & SW aktif
+    window.addEventListener('load', async () => {
+      const currentUrl  = window.location.href;
+      const isCorrect   = currentUrl === 'https://nu2883.github.io/bacaKitab/'
+                       || currentUrl === 'https://nu2883.github.io/bacaKitab/index.html';
+      const swActive    = !!navigator.serviceWorker?.controller;
+
+      // Ambil manifest version
+      let manifestStart = '?';
+      try {
+        const r = await fetch('/bacaKitab/manifest.json?t=' + Date.now());
+        const m = await r.json();
+        manifestStart = m.start_url || '?';
+      } catch(e) {}
+
+      const banner = document.createElement('div');
+      banner.id = 'pwa-debug';
+      banner.style.cssText = `
+        position:fixed; bottom:0; left:0; right:0; z-index:99999;
+        background:${isCorrect ? '#16a34a' : '#dc2626'};
+        color:#fff; font-family:monospace; font-size:11px;
+        padding:8px 12px; line-height:1.6;
+      `;
+      banner.innerHTML = `
+        <div style="font-weight:bold;font-size:13px">${isCorrect ? '✅ PWA OK' : '❌ URL SALAH — Hapus shortcut & install ulang!'}</div>
+        <div>URL aktif : <b>${currentUrl}</b></div>
+        <div>manifest start_url: <b>${manifestStart}</b></div>
+        <div>SW aktif : <b>${swActive ? 'Ya ✅' : 'Belum (refresh sekali lagi)'}</b></div>
+        <div style="margin-top:4px;opacity:0.7">Banner ini hilang otomatis dalam 10 detik</div>
+      `;
+      document.body.appendChild(banner);
+      setTimeout(() => banner.remove(), 10000);
+    });
   </script>
 </body>
 </html>
