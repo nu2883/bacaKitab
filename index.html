@@ -365,7 +365,7 @@
         <label class="nav-check-label"><input type="checkbox" v-model="showArabic"> Harokat</label>
         <label class="nav-check-label"><input type="checkbox" v-model="showMeaning"> Arti</label>
         <label class="nav-check-label"><input type="checkbox" v-model="showNahwu"> Nahwu</label>
-        <label class="nav-check-label"><input type="checkbox" v-model="showNahwuColor">  Warna</label>
+        <label class="nav-check-label"><input type="checkbox" v-model="showNahwuColor"> 🎨 Warna</label>
       </div>
       <div class="nav-divider"></div>
       <!-- Mode baca -->
@@ -434,19 +434,35 @@
       <p v-if="loading" class="text-center text-yellow-600 font-semibold text-sm">⏳ Sedang request data...</p>
       <div class="pt-2">
         <label class="block text-sm font-medium text-gray-700">Kode Halaman:</label>
-        <p class="text-xs text-gray-400 mt-0.5 mb-1">Format 6 digit: <span class="font-mono font-semibold text-gray-600">002151</span> &mdash; 3 digit awal = nomor surat, 3 digit akhir = nomor ayat</p>
-        <input type="text" v-model="noHalaman" inputmode="numeric" maxlength="6" placeholder="contoh: 002151" :disabled="loading"
+        <p class="text-xs text-gray-400 mt-0.5 mb-1">
+          Format 6 digit:<br>
+          • <span class="font-mono font-semibold text-gray-600">002151</span> — 3 digit awal = nomor surat, 3 digit akhir = nomor ayat<br>
+          • <span class="font-mono font-semibold text-gray-600">990042</span> — diawali <span class="font-mono font-semibold text-amber-600">99</span> = nomor hadist (4 digit berikutnya)
+        </p>
+        <input type="text" v-model="noHalaman" inputmode="numeric" maxlength="6" placeholder="contoh: 002151 atau 990042" :disabled="loading"
           class="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-indigo-200 mt-1 font-mono tracking-widest text-lg text-center">
-        <!-- Preview live surat & ayat -->
+        <!-- Preview live -->
         <div v-if="noHalaman && String(noHalaman).length > 0" class="mt-2 flex gap-2 justify-center">
-          <div class="flex-1 rounded-lg px-3 py-2 text-center" style="background:#eff6ff;border:1px solid #bfdbfe">
-            <div class="text-xs text-blue-500 font-semibold">Surat ke</div>
-            <div class="text-2xl font-bold text-blue-700 font-mono">{{ String(noHalaman).length >= 3 ? Number(String(noHalaman).slice(0,3)) : '?' }}</div>
-          </div>
-          <div class="flex-1 rounded-lg px-3 py-2 text-center" style="background:#f0fdf4;border:1px solid #bbf7d0">
-            <div class="text-xs text-green-500 font-semibold">Ayat ke</div>
-            <div class="text-2xl font-bold text-green-700 font-mono">{{ String(noHalaman).length === 6 ? Number(String(noHalaman).slice(3,6)) : '?' }}</div>
-          </div>
+          <!-- Mode Hadist -->
+          <template v-if="String(noHalaman).startsWith('99')">
+            <div class="flex-1 rounded-lg px-3 py-2 text-center" style="background:#fffbeb;border:1px solid #fde68a">
+              <div class="text-xs text-amber-600 font-semibold">📜 Hadist No.</div>
+              <div class="text-2xl font-bold text-amber-700 font-mono">
+                {{ String(noHalaman).length === 6 ? Number(String(noHalaman).slice(2,6)) : '?' }}
+              </div>
+            </div>
+          </template>
+          <!-- Mode Surat/Ayat -->
+          <template v-else>
+            <div class="flex-1 rounded-lg px-3 py-2 text-center" style="background:#eff6ff;border:1px solid #bfdbfe">
+              <div class="text-xs text-blue-500 font-semibold">Surat ke</div>
+              <div class="text-2xl font-bold text-blue-700 font-mono">{{ String(noHalaman).length >= 3 ? Number(String(noHalaman).slice(0,3)) : '?' }}</div>
+            </div>
+            <div class="flex-1 rounded-lg px-3 py-2 text-center" style="background:#f0fdf4;border:1px solid #bbf7d0">
+              <div class="text-xs text-green-500 font-semibold">Ayat ke</div>
+              <div class="text-2xl font-bold text-green-700 font-mono">{{ String(noHalaman).length === 6 ? Number(String(noHalaman).slice(3,6)) : '?' }}</div>
+            </div>
+          </template>
         </div>
         <div class="flex justify-end pt-3">
           <button @click="_doInsert" :disabled="!noHalaman || String(noHalaman).length !== 6 || loading"
@@ -902,7 +918,7 @@
     <div v-if="currentSuratAyat" class="hal-sticky">
       <span class="inline-block px-4 py-1 rounded-full text-sm font-semibold"
         style="background:#f4e2a3;color:#78350f;border:1px solid #d97706;letter-spacing:0.05em">
-        📖 Surat {{ currentSuratAyat.surat }} &nbsp;·&nbsp; Ayat {{ currentSuratAyat.ayat }}
+        <template v-if="currentSuratAyat.isHadist">📜 Hadist No. {{ currentSuratAyat.hadist }}</template><template v-else>📖 Surat {{ currentSuratAyat.surat }} &nbsp;·&nbsp; Ayat {{ currentSuratAyat.ayat }}</template>
       </span>
       <br>
     </div>
@@ -948,7 +964,7 @@
     <div v-if="currentSuratAyat" class="hal-sticky">
       <span class="inline-block px-4 py-1 rounded-full text-sm font-semibold"
         style="background:#f4e2a3;color:#78350f;border:1px solid #d97706;letter-spacing:0.05em">
-        📖 Surat {{ currentSuratAyat.surat }} &nbsp;·&nbsp; Ayat {{ currentSuratAyat.ayat }}
+        <template v-if="currentSuratAyat.isHadist">📜 Hadist No. {{ currentSuratAyat.hadist }}</template><template v-else>📖 Surat {{ currentSuratAyat.surat }} &nbsp;·&nbsp; Ayat {{ currentSuratAyat.ayat }}</template>
       </span>
       
     </div>
@@ -1195,11 +1211,17 @@
       currentSuratAyat() {
         const pages = [...new Set(this.dataAwal.filter(i => i.hal).map(i => i.hal))];
         if (!pages.length) return null;
-        const parse = v => { const s = String(v).padStart(6,'0'); return { surat: Number(s.slice(0,3)), ayat: Number(s.slice(3,6)) }; };
+        const parse = v => {
+          const s = String(v).replace(/^'/, '').padStart(6,'0');
+          const isHadist = s.startsWith('99');
+          if (isHadist) return { isHadist: true, hadist: Number(s.slice(2,6)) };
+          return { isHadist: false, surat: Number(s.slice(0,3)), ayat: Number(s.slice(3,6)) };
+        };
         const first = parse(pages[0]);
         if (pages.length === 1) return first;
         const last = parse(pages[pages.length - 1]);
-        return { surat: first.surat, ayat: first.ayat === last.ayat ? first.ayat : first.ayat + '–' + last.ayat };
+        if (first.isHadist) return { isHadist: true, hadist: first.hadist === last.hadist ? first.hadist : first.hadist + '–' + last.hadist };
+        return { isHadist: false, surat: first.surat, ayat: first.ayat === last.ayat ? first.ayat : first.ayat + '–' + last.ayat };
       },
       sortedDictionary() {
         return this.myDictionary.slice().sort((a, b) => {
@@ -1312,11 +1334,14 @@
           try { parsed = JSON.parse(text); } catch(e) { console.warn('bukan JSON'); return; }
           const arr = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.data) ? parsed.data : null);
           if (!arr || arr.length === 0) {
-            const surat = String(this.noHalaman || '').padStart(6,'0').slice(0,3);
-            const ayat  = String(this.noHalaman || '').padStart(6,'0').slice(3,6);
+            const _kode = String(this.noHalaman || '').padStart(6,'0');
+            const _isHadist = _kode.startsWith('99');
+            const _label = _isHadist
+              ? `Hadist No. ${Number(_kode.slice(2,6))}`
+              : `Surat ${Number(_kode.slice(0,3))} Ayat ${Number(_kode.slice(3,6))}`;
             this.showLoadPageModal = true;
             this.showToastNotification(
-              `Maaf, Surat ${Number(surat)} Ayat ${Number(ayat)} belum tersedia dalam database. Coba surat/ayat lain ya 🙏`,
+              `Maaf, ${_label} belum tersedia dalam database. Coba kode lain ya 🙏`,
               'red'
             );
             return;
@@ -1332,9 +1357,12 @@
               localStorage.setItem(NAHWU_STORAGE_KEY, JSON.stringify(arr));
               localStorage.removeItem(QUIZ_STATE_KEY); // hapus progress lama
             } catch(e) { console.warn('localStorage penuh:', e); }
-            const surat = String(this.noHalaman || '').padStart(6,'0').slice(0,3);
-            const ayat  = String(this.noHalaman || '').padStart(6,'0').slice(3,6);
-            this.showToastNotification(`✅ Surat ${Number(surat)} Ayat ${Number(ayat)} berhasil dimuat — ${arr.length} kata.`, 'green');
+            const _kode2 = String(this.noHalaman || '').padStart(6,'0');
+            const _isHadist2 = _kode2.startsWith('99');
+            const _label2 = _isHadist2
+              ? `Hadist No. ${Number(_kode2.slice(2,6))}`
+              : `Surat ${Number(_kode2.slice(0,3))} Ayat ${Number(_kode2.slice(3,6))}`;
+            this.showToastNotification(`✅ ${_label2} berhasil dimuat — ${arr.length} kata.`, 'green');
           }
         } catch(e) {
           this.showToastNotification('Gagal memuat: ' + e.message, 'red');
