@@ -439,7 +439,8 @@
           • <span class="font-mono font-semibold text-gray-600">002151</span> — 3 digit awal = nomor surat, 3 digit akhir = nomor ayat<br>
           • <span class="font-mono font-semibold text-gray-600">990042</span> — diawali <span class="font-mono font-semibold text-amber-600">99</span> = nomor hadist (4 digit berikutnya)
         </p>
-        <input type="text" v-model="noHalaman" inputmode="numeric" maxlength="6" placeholder="contoh: 002151 atau 990042" :disabled="loading"
+        <input type="text" v-model="noHalaman" inputmode="numeric" maxlength="6" placeholder="contoh: 002151 atau 991" :disabled="loading"
+          @input="onNoHalamanInput"
           class="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-indigo-200 mt-1 font-mono tracking-widest text-lg text-center">
         <!-- Preview live -->
         <div v-if="noHalaman && String(noHalaman).length > 0" class="mt-2 flex gap-2 justify-center">
@@ -448,7 +449,10 @@
             <div class="flex-1 rounded-lg px-3 py-2 text-center" style="background:#fffbeb;border:1px solid #fde68a">
               <div class="text-xs text-amber-600 font-semibold">📜 Hadist No.</div>
               <div class="text-2xl font-bold text-amber-700 font-mono">
-                {{ String(noHalaman).length === 6 ? Number(String(noHalaman).slice(2,6)) : '?' }}
+                {{ noHalamanFinal ? Number(noHalamanFinal.slice(2,6)) : '?' }}
+              </div>
+              <div v-if="noHalamanFinal && noHalamanFinal !== noHalaman" class="text-xs text-amber-500 mt-1 font-mono">
+                
               </div>
             </div>
           </template>
@@ -465,7 +469,7 @@
           </template>
         </div>
         <div class="flex justify-end pt-3">
-          <button @click="_doInsert" :disabled="!noHalaman || String(noHalaman).length !== 6 || loading"
+          <button @click="_doInsert" :disabled="!noHalamanFinal || loading"
             class="px-4 py-2 font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition disabled:opacity-40">
             Muat Halaman
           </button>
@@ -1116,6 +1120,7 @@
         insertUrlBase: 'https://script.google.com/macros/s/AKfycby025S9w4zqYOhMzReoyu2EOauP-7uVJZCFbCiC_lrclg9WXNapzwxGwo7LLW7sV15G6A/exec',
         showLoadPageModal: false,
         noHalaman: null,
+        noHalamanFinal: null,
 
         // Progress kuis — dimuat dari localStorage, tetap ada sampai load data baru
         answeredWordIndexes: (_savedQuiz && _savedQuiz.answeredWordIndexes) || [],
@@ -1308,7 +1313,8 @@
       async _doInsert() {
         this.loading = true;
         const now  = this._now();
-        const data = encodeURIComponent(JSON.stringify({ no: now.ts, tanggal: now.date, waktu: now.time, noHalaman: "'" + String(this.noHalaman) }));
+        const kode = this.noHalamanFinal || String(this.noHalaman);
+        const data = encodeURIComponent(JSON.stringify({ no: now.ts, tanggal: now.date, waktu: now.time, noHalaman: "'" + kode }));
         const url  = `${this.insertUrlBase}?action=insert&table=request&data=${data}`;
         try {
           const res  = await fetch(url, { method: 'GET' });
@@ -1681,6 +1687,23 @@
           console.log('[PWA] Install choice:', result.outcome);
           this.pwaInstallPrompt = null;
         });
+      },
+
+      /* ---- Input Halaman ---- */
+      onNoHalamanInput() {
+        const val = String(this.noHalaman || '');
+        if (val.startsWith('99')) {
+          // Ambil digit setelah 99, pad jadi 4 digit
+          const nomorHadist = val.slice(2).replace(/\D/g, '');
+          if (nomorHadist.length > 0) {
+            this.noHalamanFinal = '99' + nomorHadist.padStart(4, '0');
+          } else {
+            this.noHalamanFinal = null;
+          }
+        } else {
+          // Surat/ayat: tetap 6 digit apa adanya
+          this.noHalamanFinal = val.length === 6 ? val : null;
+        }
       },
 
       /* ---- Warna Nahwu ---- */
