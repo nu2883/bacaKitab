@@ -1157,10 +1157,10 @@
         activeWordIndex:    null,   // index kata yang SEDANG DIBACA (highlight TTS)
         pausedWordIndex:    (() => { try { return localStorage.getItem(READ_STATE_KEY) || null; } catch(e) { return null; } })(),
         quizActiveIndex:    null,   // index kata yang SEDANG DIKUIS (tampilkan pilihan jawaban)
-        readMode:           'arab-arti',
+        readMode:           'arab-latin-arti',
         readingSpeed:       1.0,
-        readingDelayWord:   600,
-        readingDelaySegment: 400,
+        readingDelayWord:   0,
+        readingDelaySegment: 0,
         _readCurrent:       0,
         _readData:          [],
         currentReadingItem: null,
