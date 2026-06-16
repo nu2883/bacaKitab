@@ -5,7 +5,7 @@
   "start_url": "/bacaKitab/",
   "scope": "/bacaKitab/",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#f4e2a3",
   "theme_color": "#92610a",
   "lang": "id",
