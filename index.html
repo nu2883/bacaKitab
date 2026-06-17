@@ -321,7 +321,7 @@
   <header v-show="isHeaderVisible" class="header-controls transition-all duration-300">
 
     <!-- Baris 1: Brand + Aksi utama -->
-    <div class="nav-top">
+    <div class="nav-top container">
       <!-- Brand -->
       <div class="nav-brand">
         <div class="nav-brand-icon">📖</div>
@@ -332,28 +332,29 @@
       </div>
 
       <!-- Aksi utama -->
-      <div class="nav-pill-group">
-        <button @click="showLoadPageModal=true" class="nav-pill nav-pill-primary">
-          ﷽ Buka Ayat
-        </button>
-        <template v-if="!isSpeaking">
-          <button @click="startReading(dataAwal, 0)" :disabled="dataAwal.length===0"
-            class="nav-pill nav-pill-green" style="opacity: dataAwal.length===0 ? 0.4 : 1">
-            ▶ Baca
-          </button>
-        </template>
-        <template v-else>
-          <button @click="stopReading" class="nav-pill nav-pill-red">⏹ Stop</button>
-        </template>
-        <button @click="showDictionary=true; closeBubble();" class="nav-pill nav-pill-ghost">📚 Kamus</button>
-        <button @click="showManualInput=true" class="nav-pill nav-pill-ghost">✍️ Input Manual</button>
-        <button @click="isQuizMode = !isQuizMode" class="nav-pill nav-pill-indigo">
-          {{ isQuizMode ? '✕ Kuis' : '🎯 Kuis' }}
-        </button>
-        <button @click="onScanCamera" class="nav-pill nav-pill-red" title="Scan Kamera">📸</button>
-        <button @click="onScanGallery" class="nav-pill nav-pill-amber" title="Scan Galeri">📁</button>
-        <button @click="openApiKeyModal" class="nav-pill nav-pill-ghost" title="API Key">🔑</button>
-      </div>
+<div class="nav-pill-group" style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
+  <button @click="showLoadPageModal=true" class="nav-pill nav-pill-primary">
+    ﷽ Buka Ayat
+  </button>
+  
+  <template v-if="!isSpeaking">
+    <button @click="startReading(dataAwal, 0)" :disabled="dataAwal.length===0"
+      class="nav-pill nav-pill-green" :style="{ opacity: dataAwal.length === 0 ? 0.4 : 1 }">
+      ▶ Baca
+    </button>
+  </template>
+  
+  <template v-else>
+    <button @click="stopReading" class="nav-pill nav-pill-red">⏹ Stop</button>
+  </template>
+  
+  <button @click="showDictionary=true; closeBubble();" class="nav-pill nav-pill-ghost">📚 Kamus</button>
+  <button @click="showManualInput=true" class="nav-pill nav-pill-ghost">✍️ Input Manual</button>
+  <button @click="isQuizMode = !isQuizMode" class="nav-pill nav-pill-indigo">
+    {{ isQuizMode ? '✕ Kuis' : '🎯 Kuis' }}
+  </button>
+</div>
+
       <input id="ocr-upload-camera" type="file" accept="image/*" capture="environment" class="hidden" @change="handleImageUpload">
       <input id="ocr-upload-gallery" type="file" accept="image/*" class="hidden" @change="handleImageUpload">
     </div>
@@ -928,8 +929,12 @@
     </div>
     <div class="flex justify-between items-center border-b pb-2 mb-4 mt-2">
       <div class="text-lg font-semibold">Teks Arab Interaktif</div>
-      <button @click="copyArabicText" :disabled="dataAwal.length===0"
-        class="px-3 py-1 rounded bg-blue-600 text-white text-sm disabled:opacity-40">📋 Salin Teks Arab</button>
+      <div class="flex gap-2">
+        <button @click="copyArabicText" :disabled="dataAwal.length===0"
+          class="px-3 py-1 rounded bg-blue-600 text-white text-sm disabled:opacity-40">📋 Salin Teks Arab</button>
+        <button @click="copyArabicTextWithPrompt" :disabled="dataAwal.length===0"
+          class="px-3 py-1 rounded bg-purple-600 text-white text-sm disabled:opacity-40">📋✨ Copy + Prompt</button>
+      </div>
     </div>
     <div v-if="dataAwal.length===0" class="p-8 text-center text-gray-600 italic">
       Tekan <strong>Load Data</strong> atau <strong>Scan Gambar</strong> untuk memulai.
@@ -2209,6 +2214,19 @@ Teks Arab yang dianalisis:
         const txt = this.dataAwal.map(d => d.arab || d.noHarokat).join(' ');
         navigator.clipboard.writeText(txt)
           .then(()  => this.showToastNotification('Teks Arab disalin.', 'green'))
+          .catch(()  => this.showToastNotification('Gagal menyalin.', 'red'));
+      },
+      copyArabicTextWithPrompt() {
+        const txt = this.dataAwal.map(d => d.arab || d.noHarokat).join(' ');
+        const prompt =
+`Tolong terjemahkan teks Arab berikut ke dalam Bahasa Indonesia berdasarkan pemahaman ulama salaf (rujukan tafsir/syarah klasik yang mu'tabar, bukan tafsir bebas/kontemporer yang menyimpang dari pemahaman salaf).
+
+Setelah terjemahan, berikan ringkasan berupa poin-poin penting (point-point) dari isi teks tersebut.
+
+Teks Arab:
+${txt}`;
+        navigator.clipboard.writeText(prompt)
+          .then(()  => this.showToastNotification('Teks Arab + prompt disalin.', 'green'))
           .catch(()  => this.showToastNotification('Gagal menyalin.', 'red'));
       },
       toggleTheme() {
