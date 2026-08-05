@@ -366,7 +366,7 @@
         <label class="nav-check-label"><input type="checkbox" v-model="showArabic"> Harokat</label>
         <label class="nav-check-label"><input type="checkbox" v-model="showMeaning"> Arti</label>
         <label class="nav-check-label"><input type="checkbox" v-model="showNahwu"> Nahwu</label>
-        <label class="nav-check-label"><input type="checkbox" v-model="showNahwuColor"> Warna</label>
+        <label class="nav-check-label"><input type="checkbox" v-model="showNahwuColor"> 🎨 Warna</label>
       </div>
       <div class="nav-divider"></div>
       <!-- Mode baca -->
@@ -1319,7 +1319,7 @@
         this.loading = true;
         const now  = this._now();
         const kode = this.noHalamanFinal || String(this.noHalaman);
-        const data = encodeURIComponent(JSON.stringify({ no: now.ts, tanggal: now.date, waktu: now.time, noHalaman: "'" + kode }));
+        const data = encodeURIComponent(JSON.stringify({ no: now.ts, tanggal: now.date, waktu: now.time, noHalaman: "'" + kode, namaUser: "-" }));
         const url  = `${this.insertUrlBase}?action=insert&table=request&data=${data}`;
         try {
           const res  = await fetch(url, { method: 'GET' });
