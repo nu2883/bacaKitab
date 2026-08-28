@@ -291,6 +291,7 @@
   <!-- Toggle header button -->
   <button @click="toggleHeader"
     @mousedown="isButtonHeld=true" @mouseup="isButtonHeld=false"
+    @touchstart="isButtonHeld=true" @touchend="isButtonHeld=false"
     :class="{'opacity-20': isButtonTransparent}"
     style="position:fixed;z-index:999;top:6px;right:12px;width:30px;height:30px;border-radius:8px;background:rgba(120,80,0,0.12);border:1px solid rgba(120,80,0,0.2);color:#5c3d0a;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .3s,background .15s;font-size:0.85rem;"
     title="Sembunyikan/Tampilkan Header">
@@ -403,6 +404,19 @@
       <div style="display:flex;align-items:center;gap:4px;">
         <button @click="changeFontSize(2)"  class="nav-font-btn">A+</button>
         <button @click="changeFontSize(-2)" class="nav-font-btn">A−</button>
+      </div>
+      <div class="nav-divider"></div>
+      <!-- Kerenggangan antar kata -->
+      <div class="nav-delay-group" title="Jarak antar kata Arab">
+        <span>↔ kata</span>
+        <input type="range" v-model.number="wordSpacing" min="0" max="1.5" step="0.05">
+        <span>{{ wordSpacing.toFixed(2) }}rem</span>
+      </div>
+      <!-- Kerenggangan antar baris -->
+      <div class="nav-delay-group" title="Jarak antar baris">
+        <span>↕ baris</span>
+        <input type="range" v-model.number="lineSpacing" min="0.2" max="3" step="0.1">
+        <span>{{ lineSpacing.toFixed(1) }}rem</span>
       </div>
     </div>
   </header>
@@ -943,7 +957,8 @@
       <template v-for="(item, idx) in dataAwal">
         <div v-if="item.noHarokat === 'NL' || item.arab === 'NL'"
           :key="'nl-'+idx" class="w-full" style="height:2rem; margin-bottom:0.5rem; border-top:1px dashed rgba(0,0,0,0.08)"></div>
-        <span v-else class="word-stack" :key="String(idx)" :data-key="String(idx)">
+        <span v-else class="word-stack" :key="String(idx)" :data-key="String(idx)"
+          :style="{ margin: '0 ' + wordSpacing + 'rem ' + lineSpacing + 'rem ' + wordSpacing + 'rem' }">
           <span class="arab-word rtl-text"
             :class="[
               {
@@ -983,7 +998,8 @@
       <div v-if="item.noHarokat === 'NL' || item.arab === 'NL'"
         :key="'nl-'+idx" class="w-full" style="height:2rem; margin-bottom:0.5rem; border-top:1px dashed rgba(0,0,0,0.08)"></div>
 
-      <span v-else class="word-stack" :key="String(idx)" :data-key="String(idx)">
+      <span v-else class="word-stack" :key="String(idx)" :data-key="String(idx)"
+        :style="{ margin: '0 ' + wordSpacing + 'rem ' + lineSpacing + 'rem ' + wordSpacing + 'rem' }">
         <span class="arab-word rtl-text cursor-pointer"
           :class="{
             'bg-green-100': feedback[String(idx)] && feedback[String(idx)].status === 'correct',
@@ -1110,15 +1126,20 @@
     data() {
       const DEFAULT_FONT_ARABIC  = 24;
       const DEFAULT_FONT_MEANING = 10;
+      const DEFAULT_WORD_SPACING = 0.35; // rem — jarak kiri/kanan antar kata Arab
+      const DEFAULT_LINE_SPACING = 0.6;  // rem — jarak bawah antar baris (saat teks wrap)
       const _savedQuiz = (() => {
         try { return JSON.parse(localStorage.getItem(QUIZ_STATE_KEY) || 'null'); } catch(e) { return null; }
       })();
       return {
         fontSizeArabic:  Number(localStorage.getItem('fontSizeArabic'))  || DEFAULT_FONT_ARABIC,
         fontSizeMeaning: Number(localStorage.getItem('fontSizeMeaning')) || DEFAULT_FONT_MEANING,
+        wordSpacing: Number(localStorage.getItem('wordSpacing')) || DEFAULT_WORD_SPACING,
+        lineSpacing: Number(localStorage.getItem('lineSpacing')) || DEFAULT_LINE_SPACING,
 
-        isHeaderVisible:   true,
-        isButtonTransparent: true,
+        // Default tampil ala "kitab kuning": header disembunyikan, hanya tombol menu di pojok kanan atas
+        isHeaderVisible:   false,
+        isButtonTransparent: false,
         isButtonHeld:      false,
         transparencyTimer: null,
 
@@ -1281,12 +1302,14 @@
     watch: {
       isButtonHeld(v) {
         if (!v) {
-          this.transparencyTimer = setTimeout(() => { this.isButtonTransparent = true; }, 2000);
+          this.transparencyTimer = setTimeout(() => { this.isButtonTransparent = true; }, 5000);
         } else {
           clearTimeout(this.transparencyTimer);
           this.isButtonTransparent = false;
         }
       },
+      wordSpacing(v) { try { localStorage.setItem('wordSpacing', String(v)); } catch(e) {} },
+      lineSpacing(v) { try { localStorage.setItem('lineSpacing', String(v)); } catch(e) {} },
       // Reset highlight level terakhir saat setting kuis berubah
       dictQuizBatchSize() { this.dictQuizLastResult = null; },
       dictQuizMode()      { this.dictQuizLastResult = null; },
@@ -1301,7 +1324,20 @@
         this.isButtonTransparent = false;
         this.transparencyTimer = setTimeout(() => {
           if (!this.isButtonHeld) this.isButtonTransparent = true;
-        }, 1000);
+        }, 5000);
+      },
+      _scheduleButtonFade() {
+        clearTimeout(this.transparencyTimer);
+        this.transparencyTimer = setTimeout(() => {
+          if (!this.isButtonHeld) this.isButtonTransparent = true;
+        }, 5000);
+      },
+      /* ---- Pengaturan tampilan ---- */
+      changeWordSpacing(delta) {
+        this.wordSpacing = Math.min(1.5, Math.max(0, +(this.wordSpacing + delta).toFixed(2)));
+      },
+      changeLineSpacing(delta) {
+        this.lineSpacing = Math.min(3, Math.max(0.2, +(this.lineSpacing + delta).toFixed(2)));
       },
 
       /* ---- Helpers ---- */
@@ -1906,6 +1942,9 @@ ATURAN PENTING:
 2. "harakatSalah1" dan "harakatSalah2" harus kata yang SAMA tapi harakat akhir BERBEDA
 3. "noHarokat" harus benar-benar tanpa harakat (strip semua tanda baca Arab)
 4. Keluarkan HANYA JSON array, tanpa penjelasan, tanpa markdown
+5. WAJIB PISAHKAN ANTAR KALIMAT/AYAT: teks input di bawah sudah dipisah per kalimat/ayat dengan baris baru (\\n). Untuk SETIAP pergantian baris pada teks asli, sisipkan SATU objek penanda baris baru di antara kata terakhir kalimat sebelumnya dan kata pertama kalimat berikutnya, persis seperti ini (field "no" tetap urut normal, field lain kosong):
+   { "no": <urut>, "arab": "NL", "noHarokat": "NL", "arti": "", "kedudukan": "", "latin": "", "harakatSalah1": "", "harakatSalah2": "" }
+   Jangan lewatkan satu pun pergantian kalimat — jika ragu apakah ada pergantian kalimat, lebih baik sisipkan penanda "NL" daripada menggabungkan dua kalimat jadi satu baris.
 
 Teks Arab yang dianalisis:
 """
@@ -2002,8 +2041,9 @@ ATURAN PENTING:
 2. "harakatSalah1" dan "harakatSalah2" harus kata yang SAMA tapi harakat akhir BERBEDA (ganti dhammah→fathah, kasrah→dhammah, dst)
 3. "noHarokat" harus benar-benar tanpa harakat (strip semua tanda baca Arab)
 4. Keluarkan HANYA JSON array, tanpa penjelasan, tanpa markdown
+5. WAJIB PISAHKAN ANTAR KALIMAT/AYAT: teks di bawah sudah dipisah per kalimat/ayat dengan baris baru (\\n). Untuk SETIAP pergantian baris pada teks asli, sisipkan SATU objek penanda baris baru di antara kata terakhir kalimat sebelumnya dan kata pertama kalimat berikutnya, persis seperti contoh objek "NL" di bawah (field "no" tetap urut normal, field lain kosong). Jangan lewatkan satu pun pergantian kalimat — jangan sampai dua kalimat berbeda tergabung jadi satu baris tanpa penanda "NL".
 
-Contoh output yang benar:
+Contoh output yang benar (termasuk penanda "NL" antar kalimat):
 [
   {
     "no": 1,
@@ -2024,10 +2064,20 @@ Contoh output yang benar:
     "latin": "suurati",
     "harakatSalah1": "سُوْرَةُ",
     "harakatSalah2": "سُوْرَةَ"
+  },
+  {
+    "no": 3,
+    "arab": "NL",
+    "noHarokat": "NL",
+    "arti": "",
+    "kedudukan": "",
+    "latin": "",
+    "harakatSalah1": "",
+    "harakatSalah2": ""
   }
 ]
 
-Teks Arab yang dianalisis:
+Teks Arab yang dianalisis (baris baru pada teks ini menandai pergantian kalimat/ayat):
 """${rawText}"""`;
 
               const nahwuResp = await this.aiClient.models.generateContent({
@@ -2238,6 +2288,7 @@ ${txt}`;
 
     mounted() {
       document.body.className = this.theme;
+      this._scheduleButtonFade();
       try {
         const saved = localStorage.getItem(NAHWU_STORAGE_KEY);
         if (saved) {
