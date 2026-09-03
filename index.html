@@ -145,8 +145,9 @@
     @keyframes spin { to { transform:rotate(360deg); } }
 
     .bubble-dialog-fixed {
-      position:fixed; top:70px; left:50%; transform:translateX(-50%);
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
       z-index:999; width:90%; max-width:520px;
+      max-height:80vh; overflow-y:auto;
       background:#fff; border-radius:12px; padding:14px 18px;
       box-shadow:0 8px 30px rgba(0,0,0,0.15);
     }
@@ -624,7 +625,7 @@
       <!-- Header -->
       <div class="flex justify-between items-center mb-3 flex-shrink-0">
         <h3 class="text-lg font-bold">📚 Kamus Saya ({{ myDictionary.length }})</h3>
-        <button @click="showDictionary=false" class="px-3 py-1 rounded bg-red-500 text-white text-sm">Tutup</button>
+        <button @click="showDictionary=false; stopDictPlay();" class="px-3 py-1 rounded bg-red-500 text-white text-sm">Tutup</button>
       </div>
       <!-- Toolbar: sort + kuis -->
       <div class="flex gap-2 items-center mb-3 flex-wrap flex-shrink-0">
@@ -641,12 +642,36 @@
         <button v-if="myDictionary.length >= 2" @click="openDictQuizSetup"
           class="ml-auto px-3 py-1 rounded bg-amber-500 text-white text-xs font-bold">🎯 Kuis Kamus</button>
       </div>
+      <!-- Toolbar: putar audio kamus -->
+      <div v-if="myDictionary.length" class="flex gap-2 items-center mb-3 flex-wrap flex-shrink-0 bg-gray-50 p-2 rounded-lg">
+        <span class="text-xs text-gray-500">Jumlah:</span>
+        <button v-for="n in [10,20,30,0]" :key="'cnt'+n" @click="dictPlayCount=n"
+          :class="dictPlayCount===n ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700'"
+          class="px-2 py-1 rounded text-xs">{{ n===0 ? 'Semua' : n }}</button>
+        <span class="text-xs text-gray-500 ml-2">Urutan putar:</span>
+        <button @click="dictPlayOrder='terbaru'"
+          :class="dictPlayOrder==='terbaru' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700'"
+          class="px-2 py-1 rounded text-xs">🕒 Terbaru</button>
+        <button @click="dictPlayOrder='acak'"
+          :class="dictPlayOrder==='acak' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700'"
+          class="px-2 py-1 rounded text-xs">🔀 Acak</button>
+        <button v-if="!isDictPlaying || dictPlayQueue.length" @click="isDictPlaying ? stopDictPlay() : startDictPlay()"
+          class="ml-auto px-3 py-1 rounded text-xs font-bold text-white"
+          :class="isDictPlaying ? 'bg-red-500' : 'bg-green-600'">
+          {{ isDictPlaying ? '⏹ Stop' : '▶️ Putar' }}
+        </button>
+      </div>
       <!-- List -->
       <div class="overflow-auto flex-1">
         <div v-if="myDictionary.length===0" class="text-center italic text-gray-600 py-8">Kamus Anda kosong.</div>
         <div v-else class="space-y-2">
           <div v-for="it in sortedDictionary" :key="it.timestamp"
-            class="p-3 border rounded-lg flex justify-between items-start gap-2">
+            class="p-3 border rounded-lg flex justify-between items-start gap-2"
+            :class="isDictPlaying && dictPlayActiveTimestamp === it.timestamp ? 'border-indigo-500 bg-indigo-50' : ''">
+            <button @click="playDictWord(it)"
+              class="flex-shrink-0 mt-1 w-7 h-7 rounded-full flex items-center justify-center text-sm"
+              :class="isDictPlaying && dictPlayActiveTimestamp === it.timestamp ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600'"
+              title="Putar audio">▶️</button>
             <div class="flex-1 min-w-0">
               <div style="font-family:'Amiri',serif;direction:rtl" class="text-right text-xl">{{ it.arab }}</div>
               <div class="text-sm mt-1 text-gray-700">{{ it.arti || '-' }}</div>
@@ -1229,6 +1254,14 @@
         dictQuizMode:       'level', // 'level' | 'cumulative'
         dictQuizLevel:      1,
         dictionarySortDir:  'desc',
+
+        // Putar audio kamus
+        isDictPlaying:          false,
+        dictPlayQueue:          [],
+        dictPlayCurrent:        0,
+        dictPlayActiveTimestamp: null,
+        dictPlayCount:          10,        // 10 | 20 | 30 | 0 = semua
+        dictPlayOrder:          'terbaru', // 'terbaru' | 'acak'
       };
     },
 
@@ -1262,6 +1295,18 @@
             return (a.wrongCount||0) - (b.wrongCount||0);
           return (b.timestamp||0) - (a.timestamp||0); // default: terbaru
         });
+      },
+      // Antrian putar audio kamus, sesuai jumlah kata & urutan yang dipilih
+      dictPlayList() {
+        let list = this.myDictionary.slice().sort((a, b) => (b.timestamp||0) - (a.timestamp||0));
+        if (this.dictPlayOrder === 'acak') {
+          for (let i = list.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [list[i], list[j]] = [list[j], list[i]];
+          }
+        }
+        if (this.dictPlayCount) list = list.slice(0, this.dictPlayCount);
+        return list;
       },
       // Daftar level yang tersedia berdasarkan batchSize dan jumlah kamus
       dictQuizLevels() {
@@ -1550,7 +1595,7 @@
 
       // Speak satu utterance — async voice loading + polling fallback Android
       async _speakOne(text, onDone) {
-        if (!text || !text.trim() || !this.isSpeaking) { onDone(); return; }
+        if (!text || !text.trim() || !(this.isSpeaking || this.isDictPlaying)) { onDone(); return; }
 
         // Tunggu voices siap (kritis di Android)
         const voices  = await this._loadVoices();
@@ -1592,11 +1637,41 @@
         // Polling fallback: cek setiap 300ms apakah synthesis sudah idle
         // Android Chrome sering tidak trigger onend
         pollId = setInterval(() => {
-          if (!this.isSpeaking) { clearInterval(pollId); window.speechSynthesis.cancel(); return; }
+          if (!this.isSpeaking && !this.isDictPlaying) { clearInterval(pollId); window.speechSynthesis.cancel(); return; }
           if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
             finish();
           }
         }, 300);
+      },
+
+      // Bangun & baca rangkaian segmen (arab/latin/arti) untuk satu item, sesuai mode baca.
+      // Dipakai bersama oleh mode baca kitab & mode putar audio kamus.
+      _speakItemSegments(item, mode, onDone) {
+        const arabText  = item.arab  || item.noHarokat || '';
+        const artiText  = item.arti  || '';
+        const latinText = item.latin || '';
+
+        let segments = [];
+        if      (mode === 'arab')            segments = [arabText];
+        else if (mode === 'arti')            segments = [artiText];
+        else if (mode === 'latin')           segments = [latinText || arabText];
+        else if (mode === 'latin-arti')      segments = [latinText || arabText, artiText];
+        else if (mode === 'arab-arti')       segments = [arabText, artiText];
+        else if (mode === 'arab-latin-arti') segments = [arabText, latinText || arabText, artiText];
+        else                                 segments = [arabText];
+
+        segments = segments.filter(s => s && s.trim());
+
+        const speakChain = async (idx) => {
+          if (idx >= segments.length) { onDone(); return; }
+          await new Promise(resolve => {
+            this._speakOne(segments[idx], () => {
+              setTimeout(resolve, this.readingDelaySegment);
+            });
+          });
+          speakChain(idx + 1);
+        };
+        speakChain(0);
       },
 
       _speakNext() {
@@ -1625,42 +1700,13 @@
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
 
-        const arabText  = item.arab  || item.noHarokat || '';
-        const artiText  = item.arti  || '';
-        const latinText = item.latin || '';
-        const mode      = this.readMode;
-
         // Selesai satu kata → jeda sesuai setting lalu lanjut
         const next = () => {
           this._readCurrent++;
           if (this.isSpeaking) setTimeout(() => this._speakNext(), this.readingDelayWord);
         };
 
-        // Pilih urutan segmen sesuai mode
-        let segments = [];
-        if      (mode === 'arab')            segments = [arabText];
-        else if (mode === 'arti')            segments = [artiText];
-        else if (mode === 'latin')           segments = [latinText || arabText];
-        else if (mode === 'latin-arti')      segments = [latinText || arabText, artiText];
-        else if (mode === 'arab-arti')       segments = [arabText, artiText];
-        else if (mode === 'arab-latin-arti') segments = [arabText, latinText || arabText, artiText];
-        else                                 segments = [arabText];
-
-        // Hapus segmen kosong
-        segments = segments.filter(s => s && s.trim());
-
-        // Baca segmen satu per satu secara rekursif (async-safe)
-        const speakChain = async (idx) => {
-          if (idx >= segments.length || !this.isSpeaking) { next(); return; }
-          await new Promise(resolve => {
-            this._speakOne(segments[idx], () => {
-              setTimeout(resolve, this.readingDelaySegment);
-            });
-          });
-          speakChain(idx + 1);
-        };
-
-        speakChain(0);
+        this._speakItemSegments(item, this.readMode, next);
       },
 
       stopReading() {
@@ -2145,6 +2191,50 @@ Teks Arab yang dianalisis (baris baru pada teks ini menandai pergantian kalimat/
           localStorage.setItem('myDictionary', JSON.stringify(this.myDictionary));
           this.showToastNotification('Terhapus.', 'green');
         }
+      },
+
+      /* ---- Putar audio kamus ---- */
+      // Putar satu kata saja (tombol ▶️ di tiap baris)
+      playDictWord(item) {
+        this.stopDictPlay();
+        try { window.speechSynthesis.cancel(); } catch(e) {}
+        this.isDictPlaying           = true;
+        this.dictPlayActiveTimestamp = item.timestamp;
+        this._speakItemSegments(item, this.readMode, () => {
+          this.isDictPlaying           = false;
+          this.dictPlayActiveTimestamp = null;
+        });
+      },
+      // Putar beruntun sesuai jumlah kata & urutan yang dipilih
+      startDictPlay() {
+        const queue = this.dictPlayList;
+        if (!queue.length) {
+          this.showToastNotification('Kamus kosong.', 'orange');
+          return;
+        }
+        try { window.speechSynthesis.cancel(); } catch(e) {}
+        this.dictPlayQueue   = queue;
+        this.dictPlayCurrent = 0;
+        this.isDictPlaying   = true;
+        this._dictSpeakNext();
+      },
+      _dictSpeakNext() {
+        if (!this.isDictPlaying || this.dictPlayCurrent >= this.dictPlayQueue.length) {
+          this.isDictPlaying           = false;
+          this.dictPlayActiveTimestamp = null;
+          return;
+        }
+        const item = this.dictPlayQueue[this.dictPlayCurrent];
+        this.dictPlayActiveTimestamp = item.timestamp;
+        this._speakItemSegments(item, this.readMode, () => {
+          this.dictPlayCurrent++;
+          if (this.isDictPlaying) setTimeout(() => this._dictSpeakNext(), this.readingDelayWord);
+        });
+      },
+      stopDictPlay() {
+        this.isDictPlaying           = false;
+        this.dictPlayActiveTimestamp = null;
+        try { window.speechSynthesis.cancel(); } catch(e) {}
       },
 
       /* ---- Kuis Kamus ---- */
