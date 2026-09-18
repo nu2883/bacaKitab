@@ -48,7 +48,12 @@
     body.dark .flash-divider { background:rgba(255,255,255,0.15); }
     .flash-arti { font-size:1.7rem; font-weight:700; }
     .flash-kedudukan { font-size:0.85rem; opacity:0.6; max-width:320px; }
-    .flash-actions { display:flex; gap:10px; margin-top:26px; }
+    .flash-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px; /* Atur jarak antar tombol sesuai kebutuhan */
+}
     .flash-mini-btn {
       padding:10px 16px; border-radius:12px; border:none; font-size:0.82rem;
       font-weight:700; cursor:pointer; background:rgba(120,80,0,0.08); color:inherit;
@@ -123,15 +128,17 @@
           <div class="flash-divider"></div>
           <div class="flash-arti">{{ currentWord.arti || '—' }}</div>
           <div class="flash-kedudukan" v-if="currentWord.kedudukan">{{ currentWord.kedudukan }}</div>
-          <div class="flash-actions" @click.stop>
-            <button class="flash-mini-btn flash-sulit" @click="markResult('sulit')">😅 Sulit</button>
-            <button class="flash-mini-btn" @click="playAudio(currentWord)">🔊 Dengar</button>
-            <button class="flash-mini-btn flash-hafal" @click="markResult('hafal')">😊 Hafal</button>
-          </div>
+
         </div>
       </template>
       <button v-if="!isFlipped" class="flash-shuffle" @click.stop="pickWord">🔀 Kata lain</button>
     </div>
+
+              <div class="flash-actions" @click.stop>
+            <button class="flash-mini-btn flash-sulit" @click="markResult('sulit')">😅 Sulit</button>
+            <button class="flash-mini-btn" @click="playAudio(currentWord)">🔊 Dengar</button>
+            <button class="flash-mini-btn flash-hafal" @click="markResult('hafal')">😊 Hafal</button>
+          </div>
 
     <!-- ===== MODAL PENGATURAN ===== -->
     <div v-if="showSettings" class="settings-backdrop" @click.self="showSettings = false">
@@ -226,18 +233,44 @@
           }
         },
 
-        markResult(type) {
-          const item = this.currentWord;
-          if (!item) return;
-          if (type === 'hafal') item.correctCount = (item.correctCount || 0) + 1;
-          else                  item.wrongCount   = (item.wrongCount   || 0) + 1;
-          const idx = this.allWords.findIndex(d => d.timestamp === item.timestamp);
-          if (idx !== -1) {
-            this.allWords[idx] = { ...this.allWords[idx], ...item };
-            try { localStorage.setItem('myDictionary', JSON.stringify(this.allWords)); } catch(e) {}
-          }
-          this.pickWord();
-        },
+markResult(type) {
+    const item = this.currentWord;
+    if (!item) return;
+
+    // Simpan hasil
+    if (type === 'hafal') {
+        item.correctCount = (item.correctCount || 0) + 1;
+    } else {
+        item.wrongCount = (item.wrongCount || 0) + 1;
+    }
+
+    const idx = this.allWords.findIndex(
+        d => d.timestamp === item.timestamp
+    );
+
+    if (idx !== -1) {
+        this.allWords[idx] = {
+            ...this.allWords[idx],
+            ...item
+        };
+
+        try {
+            localStorage.setItem(
+                'myDictionary',
+                JSON.stringify(this.allWords)
+            );
+        } catch(e) {}
+    }
+
+    // Flip kembali → tampilkan Arab
+    this.isFlipped = false;
+
+    // Setelah kartu terlihat sisi Arab,
+    // tunggu sebentar lalu ambil kata berikutnya
+    setTimeout(() => {
+        this.pickWord();
+    }, 700);
+},
 
         playAudio(item) {
           if (!item || (!item.arab && !item.noHarokat)) return;
