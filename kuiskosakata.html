@@ -159,7 +159,7 @@
         <div class="settings-label">LAINNYA</div>
         <button class="settings-row-btn" @click="goHome">📚 Buka BacaKitab (app lengkap)</button>
         <button class="settings-row-btn" @click="loadDummyData">🎲 Muat Data Contoh</button>
-        <button class="settings-row-btn" @click="clearDictionary" style="color:#b8590a;">🗑️ Kosongkan Kamus</button>
+        
       </div>
     </div>
 
@@ -204,7 +204,7 @@
         },
         goHome() {
           try { window.speechSynthesis.cancel(); } catch(e) {}
-          window.location.href = 'bacaKitab.html';
+          window.location.href = 'https://nu2883.github.io/bacaKitab/';
         },
 
         // Pilih satu kata sesuai mode urutan yang aktif
