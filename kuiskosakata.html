@@ -22,7 +22,7 @@
     body.light { background:linear-gradient(180deg,#f4e2a3 0%,#f9f1d1 40%,#fdf9e6 100%); color:#2c2a24; }
     body.dark  { background:#071029; color:#e6eef8; }
 
-    #app { height:100vh; display:flex; flex-direction:column; position:relative; }
+    #app { height:100vh; display:flex; flex-direction:column; position:relative; box-sizing:border-box; padding-bottom: env(safe-area-inset-bottom); }
 
     .topbar { position:fixed; top:0; right:0; z-index:60; display:flex; gap:8px; padding:12px 14px; }
     .icon-btn {
@@ -37,7 +37,8 @@
     .flash-wrap {
       flex:1; width:100%; display:flex; flex-direction:column;
       align-items:center; justify-content:center; text-align:center;
-      padding:60px 22px 30px; cursor:pointer; box-sizing:border-box;
+      padding:50px 22px 10px; cursor:pointer; box-sizing:border-box;
+      overflow:hidden;
     }
     .flash-arab {
       font-family:'Amiri',serif; direction:rtl; text-align:center;
@@ -50,13 +51,17 @@
     body.dark .flash-divider { background:rgba(255,255,255,0.15); }
     .flash-arti { font-size:1.7rem; font-weight:700; }
     .flash-kedudukan { font-size:0.85rem; opacity:0.6; max-width:320px; }
+    
     .flash-actions {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 20%;
-}
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      padding: 15px 22px 25px;
+      width: 100%;
+      box-sizing: border-box;
+      flex-shrink: 0;
+    }
     .flash-mini-btn {
       padding:10px 16px; border-radius:12px; border:none; font-size:0.82rem;
       font-weight:700; cursor:pointer; background:rgba(120,80,0,0.08); color:inherit;
@@ -139,29 +144,30 @@
     </div>
 
     <!-- ===== KARTU KATA ===== -->
-    <div v-else class="flash-wrap" @click="isFlipped = !isFlipped">
-      <template v-if="!isFlipped">
-        <div class="flash-arab">{{ currentWord.arab || currentWord.noHarokat }}</div>
-        <div class="flash-hint">Ketuk untuk lihat arti</div>
-      </template>
-      <template v-else>
-        <div class="flash-back">
-          <div class="flash-arab" style="font-size:2.2rem">{{ currentWord.arab || currentWord.noHarokat }}</div>
-          <div class="flash-latin" v-if="currentWord.latin">{{ currentWord.latin }}</div>
-          <div class="flash-divider"></div>
-          <div class="flash-arti">{{ currentWord.arti || '—' }}</div>
-          <div class="flash-kedudukan" v-if="currentWord.kedudukan">{{ currentWord.kedudukan }}</div>
-
-        </div>
-      </template>
-      <button v-if="!isFlipped" class="flash-shuffle" @click.stop="pickWord">🔀 Kata lain</button>
-    </div>
-
-              <div class="flash-actions" @click.stop>
-            <button class="flash-mini-btn flash-sulit" @click="markResult('sulit')">😅 Sulit</button>
-            <button class="flash-mini-btn" @click="playAudio(currentWord)">🔊 Dengar</button>
-            <button class="flash-mini-btn flash-hafal" @click="markResult('hafal')">😊 Hafal</button>
+    <template v-else>
+      <div class="flash-wrap" @click="isFlipped = !isFlipped">
+        <template v-if="!isFlipped">
+          <div class="flash-arab">{{ currentWord.arab || currentWord.noHarokat }}</div>
+          <div class="flash-hint">Ketuk untuk lihat arti</div>
+        </template>
+        <template v-else>
+          <div class="flash-back">
+            <div class="flash-arab" style="font-size:2.2rem">{{ currentWord.arab || currentWord.noHarokat }}</div>
+            <div class="flash-latin" v-if="currentWord.latin">{{ currentWord.latin }}</div>
+            <div class="flash-divider"></div>
+            <div class="flash-arti">{{ currentWord.arti || '—' }}</div>
+            <div class="flash-kedudukan" v-if="currentWord.kedudukan">{{ currentWord.kedudukan }}</div>
           </div>
+        </template>
+        <button class="flash-shuffle" @click.stop="pickWord">🔀 Kata lain</button>
+      </div>
+
+      <div class="flash-actions" @click.stop>
+        <button class="flash-mini-btn flash-sulit" @click="markResult('sulit')">😅 Sulit</button>
+        <button class="flash-mini-btn" @click="playAudio(currentWord)">🔊 Dengar</button>
+        <button class="flash-mini-btn flash-hafal" @click="markResult('hafal')">😊 Hafal</button>
+      </div>
+    </template>
 
     <!-- ===== MODAL PENGATURAN ===== -->
     <div v-if="showSettings" class="settings-backdrop" @click.self="showSettings = false">
@@ -181,7 +187,7 @@
 
         <div class="settings-label">LAINNYA</div>
         <button class="settings-row-btn" @click="goHome">📚 Buka BacaKitab (app lengkap)</button>
-        <button class="settings-row-btn" @click="loadDummyData">🎲 Muat Data Contoh</button>
+        <button class="settings-row-btn" @click="loadDummyData">🎲 Muat Data Contoh (Simpan Permanen)</button>
         
       </div>
     </div>
@@ -197,7 +203,7 @@
         currentWord: null,
         isFlipped: false,
         showSettings: false,
-        wordOrder: localStorage.getItem('flashcardOrder') || 'acak', // acak | sulit | terbaru
+        wordOrder: localStorage.getItem('flashcardOrder') || 'acak',
         pwaInstallPrompt: null,
       },
       watch: {
@@ -231,12 +237,41 @@
             this.pwaInstallPrompt = null;
           });
         },
+        getDummyArray() {
+          const now = Date.now();
+          const dummy = [
+            { arab:'بِسْمِ',     noHarokat:'بسم',     arti:'Dengan nama',        kedudukan:"Jar Majrur — Mudhaf",                     latin:'bismi',      harakatSalah1:'بِسْمَ',     harakatSalah2:'بِسْمُ',     wrongCount:3, correctCount:1 },
+            { arab:'اللَّهِ',     noHarokat:'الله',    arti:'Allah',              kedudukan:"Mudhaf Ilaih — Majrur",                   latin:'Allaahi',    harakatSalah1:'اللَّهَ',     harakatSalah2:'اللَّهُ',     wrongCount:0, correctCount:5 },
+            { arab:'الرَّحْمَٰنِ',   noHarokat:'الرحمن',  arti:'Yang Maha Pengasih', kedudukan:"Na'at (sifat) — Majrur",                latin:'ar-Rahmaani',harakatSalah1:'الرَّحْمَٰنَ',   harakatSalah2:'الرَّحْمَٰنُ',   wrongCount:1, correctCount:2 },
+            { arab:'تَفْسِيْرُ',    noHarokat:'تفسير',   arti:'Tafsir / Penjelasan',kedudukan:"Mubtada' - Marfu' - Mudhaf",             latin:'tafsiiru',   harakatSalah1:'تَفْسِيْرَ',    harakatSalah2:'تَفْسِيْرِ',    wrongCount:4, correctCount:0 },
+            { arab:'سُوْرَةِ',     noHarokat:'سورة',    arti:'Surah',              kedudukan:"Mudhaf Ilaih - Majrur",                   latin:'suurati',    harakatSalah1:'سُوْرَةُ',    harakatSalah2:'سُوْرَةَ',    wrongCount:2, correctCount:3 },
+            { arab:'الْحَمْدُ',     noHarokat:'الحمد',   arti:'Segala puji',        kedudukan:"Mubtada' - Marfu'",                       latin:'al-hamdu',   harakatSalah1:'الْحَمْدَ',    harakatSalah2:'الْحَمْدِ',    wrongCount:0, correctCount:4 },
+            { arab:'رَبِّ',         noHarokat:'رب',      arti:'Tuhan/Pemelihara',   kedudukan:"Mudhaf Ilaih - Majrur",                   latin:'rabbi',      harakatSalah1:'رَبَّ',        harakatSalah2:'رَبُّ',        wrongCount:5, correctCount:1 },
+            { arab:'الْعَالَمِيْنَ',  noHarokat:'العالمين', arti:'Semesta alam',       kedudukan:"Mudhaf Ilaih - Majrur - jamak mudzakkar salim",latin:'al-\'aalamiina',harakatSalah1:'الْعَالَمِيْنِ', harakatSalah2:'الْعَالَمُوْنَ', wrongCount:1, correctCount:2 },
+            { arab:'مَالِكِ',       noHarokat:'مالك',    arti:'Yang Menguasai',     kedudukan:"Na'at (sifat) — Majrur",                  latin:'maaliki',    harakatSalah1:'مَالِكَ',      harakatSalah2:'مَالِكُ',      wrongCount:0, correctCount:1 },
+            { arab:'يَوْمِ',        noHarokat:'يوم',     arti:'Hari',               kedudukan:"Mudhaf Ilaih - Majrur",                   latin:'yawmi',      harakatSalah1:'يَوْمَ',      harakatSalah2:'يَوْمُ',      wrongCount:2, correctCount:0 },
+            { arab:'الدِّيْنِ',     noHarokat:'الدين',   arti:'Pembalasan/Agama',   kedudukan:"Mudhaf Ilaih - Majrur",                   latin:'ad-diini',   harakatSalah1:'الدِّيْنَ',    harakatSalah2:'الدِّيْنُ',    wrongCount:3, correctCount:2 },
+            { arab:'نَعْبُدُ',      noHarokat:'نعبد',    arti:'Kami menyembah',     kedudukan:"Fi'il Mudhari' - Marfu' - Fa'il dhamir kami", latin:'na\'budu',   harakatSalah1:'نَعْبُدَ',     harakatSalah2:'نَعْبُدِ',     wrongCount:0, correctCount:3 },
+            { arab:'نَسْتَعِيْنُ',  noHarokat:'نستعين',  arti:'Kami memohon pertolongan',kedudukan:"Fi'il Mudhari' - Marfu'",         latin:'nasta\'iinu',harakatSalah1:'نَسْتَعِيْنَ',   harakatSalah2:'نَسْتَعِيْنِ',   wrongCount:1, correctCount:1 },
+          ];
+          return dummy.map((d, i) => ({
+            no: i + 1, ...d, timestamp: now - (dummy.length - i) * 3600000
+          }));
+        },
         loadDictionary() {
           try {
-            this.allWords = JSON.parse(localStorage.getItem('myDictionary') || '[]');
-          } catch(e) {
-            this.allWords = [];
-          }
+            const saved = localStorage.getItem('myDictionary');
+            if (saved) {
+              const parsed = JSON.parse(saved);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                this.allWords = parsed;
+                return;
+              }
+            }
+          } catch(e) {}
+          
+          // Jika localStorage kosong atau tidak valid, gunakan data contoh sementara (TIDAK disimpan ke localStorage)
+          this.allWords = this.getDummyArray();
         },
         toggleTheme() {
           this.theme = this.theme === 'light' ? 'dark' : 'light';
@@ -246,7 +281,6 @@
           window.location.href = 'https://nu2883.github.io/bacaKitab/';
         },
 
-        // Pilih satu kata sesuai mode urutan yang aktif
         pickWord() {
           try { window.speechSynthesis.cancel(); } catch(e) {}
           this.isFlipped = false;
@@ -257,7 +291,6 @@
             const pool = sorted.slice(0, Math.max(5, Math.ceil(sorted.length * 0.3)));
             this.currentWord = pool[Math.floor(Math.random() * pool.length)];
           } else if (this.wordOrder === 'sulit') {
-            // Random berbobot: kata dengan wrongCount lebih tinggi lebih sering muncul
             const weights = this.allWords.map(w => (w.wrongCount || 0) + 1);
             const total = weights.reduce((a, b) => a + b, 0);
             let r = Math.random() * total;
@@ -272,44 +305,41 @@
           }
         },
 
-markResult(type) {
-    const item = this.currentWord;
-    if (!item) return;
+        markResult(type) {
+          const item = this.currentWord;
+          if (!item) return;
 
-    // Simpan hasil
-    if (type === 'hafal') {
-        item.correctCount = (item.correctCount || 0) + 1;
-    } else {
-        item.wrongCount = (item.wrongCount || 0) + 1;
-    }
+          if (type === 'hafal') {
+              item.correctCount = (item.correctCount || 0) + 1;
+          } else {
+              item.wrongCount = (item.wrongCount || 0) + 1;
+          }
 
-    const idx = this.allWords.findIndex(
-        d => d.timestamp === item.timestamp
-    );
+          const idx = this.allWords.findIndex(
+              d => d.timestamp === item.timestamp
+          );
 
-    if (idx !== -1) {
-        this.allWords[idx] = {
-            ...this.allWords[idx],
-            ...item
-        };
+          if (idx !== -1) {
+              this.allWords[idx] = {
+                  ...this.allWords[idx],
+                  ...item
+              };
 
-        try {
-            localStorage.setItem(
-                'myDictionary',
-                JSON.stringify(this.allWords)
-            );
-        } catch(e) {}
-    }
+              // Catatan: Jika data saat ini berasal dari data contoh (belum pernah disimpan user), 
+              // melakukan interaksi tombol akan menyimpannya sebagai data nyata di localStorage.
+              try {
+                  localStorage.setItem(
+                      'myDictionary',
+                      JSON.stringify(this.allWords)
+                  );
+              } catch(e) {}
+          }
 
-    // Flip kembali → tampilkan Arab
-    this.isFlipped = false;
-
-    // Setelah kartu terlihat sisi Arab,
-    // tunggu sebentar lalu ambil kata berikutnya
-    setTimeout(() => {
-        this.pickWord();
-    }, 150);
-},
+          this.isFlipped = false;
+          setTimeout(() => {
+              this.pickWord();
+          }, 150);
+        },
 
         playAudio(item) {
           if (!item || (!item.arab && !item.noHarokat)) return;
@@ -325,25 +355,7 @@ markResult(type) {
         },
 
         loadDummyData() {
-          const now = Date.now();
-          const dummy = [
-            { arab:'بِسْمِ',      noHarokat:'بسم',      arti:'Dengan nama',        kedudukan:"Jar Majrur — Mudhaf",                         latin:'bismi',      harakatSalah1:'بِسْمَ',      harakatSalah2:'بِسْمُ',      wrongCount:3, correctCount:1 },
-            { arab:'اللَّهِ',      noHarokat:'الله',     arti:'Allah',              kedudukan:"Mudhaf Ilaih — Majrur",                       latin:'Allaahi',    harakatSalah1:'اللَّهَ',      harakatSalah2:'اللَّهُ',      wrongCount:0, correctCount:5 },
-            { arab:'الرَّحْمَٰنِ',   noHarokat:'الرحمن',   arti:'Yang Maha Pengasih', kedudukan:"Na'at (sifat) — Majrur",                      latin:'ar-Rahmaani',harakatSalah1:'الرَّحْمَٰنَ',   harakatSalah2:'الرَّحْمَٰنُ',   wrongCount:1, correctCount:2 },
-            { arab:'تَفْسِيْرُ',    noHarokat:'تفسير',    arti:'Tafsir / Penjelasan',kedudukan:"Mubtada' - Marfu' - Mudhaf",                  latin:'tafsiiru',   harakatSalah1:'تَفْسِيْرَ',    harakatSalah2:'تَفْسِيْرِ',    wrongCount:4, correctCount:0 },
-            { arab:'سُوْرَةِ',     noHarokat:'سورة',     arti:'Surah',              kedudukan:"Mudhaf Ilaih - Majrur",                       latin:'suurati',    harakatSalah1:'سُوْرَةُ',     harakatSalah2:'سُوْرَةَ',     wrongCount:2, correctCount:3 },
-            { arab:'الْحَمْدُ',     noHarokat:'الحمد',    arti:'Segala puji',        kedudukan:"Mubtada' - Marfu'",                           latin:'al-hamdu',   harakatSalah1:'الْحَمْدَ',     harakatSalah2:'الْحَمْدِ',     wrongCount:0, correctCount:4 },
-            { arab:'رَبِّ',        noHarokat:'رب',       arti:'Tuhan/Pemelihara',   kedudukan:"Mudhaf Ilaih - Majrur",                       latin:'rabbi',      harakatSalah1:'رَبَّ',        harakatSalah2:'رَبُّ',        wrongCount:5, correctCount:1 },
-            { arab:'الْعَالَمِيْنَ',  noHarokat:'العالمين', arti:'Semesta alam',       kedudukan:"Mudhaf Ilaih - Majrur - jamak mudzakkar salim",latin:'al-\'aalamiina',harakatSalah1:'الْعَالَمِيْنِ', harakatSalah2:'الْعَالَمُوْنَ', wrongCount:1, correctCount:2 },
-            { arab:'مَالِكِ',      noHarokat:'مالك',     arti:'Yang Menguasai',     kedudukan:"Na'at (sifat) — Majrur",                      latin:'maaliki',    harakatSalah1:'مَالِكَ',      harakatSalah2:'مَالِكُ',      wrongCount:0, correctCount:1 },
-            { arab:'يَوْمِ',       noHarokat:'يوم',      arti:'Hari',               kedudukan:"Mudhaf Ilaih - Majrur",                       latin:'yawmi',      harakatSalah1:'يَوْمَ',       harakatSalah2:'يَوْمُ',       wrongCount:2, correctCount:0 },
-            { arab:'الدِّيْنِ',     noHarokat:'الدين',    arti:'Pembalasan/Agama',   kedudukan:"Mudhaf Ilaih - Majrur",                       latin:'ad-diini',   harakatSalah1:'الدِّيْنَ',     harakatSalah2:'الدِّيْنُ',     wrongCount:3, correctCount:2 },
-            { arab:'نَعْبُدُ',      noHarokat:'نعبد',     arti:'Kami menyembah',     kedudukan:"Fi'il Mudhari' - Marfu' - Fa'il dhamir kami", latin:'na\'budu',   harakatSalah1:'نَعْبُدَ',      harakatSalah2:'نَعْبُدِ',      wrongCount:0, correctCount:3 },
-            { arab:'نَسْتَعِيْنُ',   noHarokat:'نستعين',   arti:'Kami memohon pertolongan',kedudukan:"Fi'il Mudhari' - Marfu'",                latin:'nasta\'iinu',harakatSalah1:'نَسْتَعِيْنَ',   harakatSalah2:'نَسْتَعِيْنِ',   wrongCount:1, correctCount:1 },
-          ];
-          const arr = dummy.map((d, i) => ({
-            no: i + 1, ...d, timestamp: now - (dummy.length - i) * 3600000
-          }));
+          const arr = this.getDummyArray();
           try { localStorage.setItem('myDictionary', JSON.stringify(arr)); } catch(e) {}
           this.loadDictionary();
           this.pickWord();
