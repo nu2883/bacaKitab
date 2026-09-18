@@ -1,15 +1,17 @@
 // ============================================================
 // BacaKitab Service Worker
-// Strategy: Cache First untuk asset statis, Network First untuk GAS API
+// Strategy: Network First untuk halaman HTML (biar selalu update),
+//           Cache First untuk asset statis lain, Network First untuk GAS API
 // ============================================================
 
-const CACHE_NAME    = 'bacakitab-v4';
+const CACHE_NAME    = 'bacakitab-v5'; // <- dinaikkan dari v4 supaya cache lama (termasuk kuisKosakata.html versi stuck) langsung dibuang
 const SCOPE         = '/bacaKitab/';
 
 // Asset yang di-cache saat install (app shell)
 const PRECACHE_URLS = [
   '/bacaKitab/',
   '/bacaKitab/index.html',
+  '/bacaKitab/kuisKosakata.html',
   '/bacaKitab/manifest.json',
   // CDN fonts & libraries
   'https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap',
@@ -36,6 +38,13 @@ self.addEventListener('activate', event => {
     ).then(() => self.clients.claim())
   );
 });
+
+// Halaman HTML: request navigasi, atau path berakhiran .html, atau root scope
+function isHtmlRequest(event, url) {
+  return event.request.mode === 'navigate' ||
+         url.pathname.endsWith('.html') ||
+         url.pathname === SCOPE;
+}
 
 // ---- FETCH: strategi per tipe request ----
 self.addEventListener('fetch', event => {
@@ -70,8 +79,26 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 3. File app (HTML, JS, CSS, ikon) → Cache First
-  if (url.pathname.startsWith('/bacaKitab/')) {
+  // 3. Halaman HTML di app kita → Network First (selalu coba versi terbaru dulu,
+  //    fallback ke cache kalau offline/gagal fetch). Ini yang bikin update file
+  //    HTML (mis. kuisKosakata.html) langsung kelihatan tanpa perlu bump versi cache.
+  if (url.pathname.startsWith(SCOPE) && isHtmlRequest(event, url)) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // 4. File app lain (JS, CSS, ikon, manifest) → Cache First
+  if (url.pathname.startsWith(SCOPE)) {
     event.respondWith(
       caches.match(event.request).then(cached => {
         if (cached) return cached;
@@ -88,7 +115,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 4. Request lain → network biasa
+  // 5. Request lain → network biasa
   event.respondWith(fetch(event.request));
 });
 
