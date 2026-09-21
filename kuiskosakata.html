@@ -8,7 +8,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Kuis Kosakata">
   <meta name="theme-color" content="#92610a">
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest-kuis.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="color-scheme" content="only light">
   <title>Kuis Kosakata Arab</title>
@@ -37,7 +38,7 @@
     .flash-wrap {
       flex:1; width:100%; display:flex; flex-direction:column;
       align-items:center; justify-content:center; text-align:center;
-      padding:60px 22px 30px; cursor:pointer; box-sizing:border-box;
+      padding:60px 22px 100px; cursor:pointer; box-sizing:border-box;
     }
     .flash-arab {
       font-family:'Amiri',serif; direction:rtl; text-align:center;
@@ -50,32 +51,33 @@
     body.dark .flash-divider { background:rgba(255,255,255,0.15); }
     .flash-arti { font-size:1.7rem; font-weight:700; }
     .flash-kedudukan { font-size:0.85rem; opacity:0.6; max-width:320px; }
-.flash-actions {
-  position: fixed;
-  bottom: 75px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 9999;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  max-width: 600px; /* Opsional: batasi lebar maksimal agar tidak terlalu melebar di layar besar */
-  padding: 0 16px;   /* Mencegah tombol menempel ke tepi layar di HP */
-  box-sizing: border-box;
-}
 
-.flash-mini-btn {
-  padding: 10px 16px;
-  border-radius: 12px;
-  border: none;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  background: rgba(120, 80, 0, 0.08);
-  color: inherit;
-}
+    /* Bar aksi mengambang di bawah — hanya tampil saat kartu dibalik (lihat v-if) */
+    .flash-actions {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      max-width: 600px;
+      padding: 0 16px;
+      box-sizing: border-box;
+    }
+    .flash-mini-btn {
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: none;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: rgba(120, 80, 0, 0.08);
+      color: inherit;
+    }
     body.dark .flash-mini-btn { background:rgba(255,255,255,0.08); }
     .flash-sulit { background:rgba(184,89,10,0.12); color:#b8590a; }
     .flash-hafal { background:rgba(47,107,79,0.12); color:#2f6b4f; }
@@ -132,10 +134,10 @@
              background:#fff7e0;border:2px solid #c28a1a;border-radius:16px;
              padding:14px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.18);
              display:flex;align-items:center;gap:12px;max-width:340px;width:90%">
-      <span style="font-size:1.6rem">📖</span>
+      <span style="font-size:1.6rem">🔤</span>
       <div style="flex:1">
-        <div style="font-weight:700;color:#5c3d0a;font-size:0.85rem">Install BacaKitab</div>
-        <div style="font-size:0.72rem;color:#9a7030;margin-top:2px">Akses cepat dari homescreen, bisa offline</div>
+        <div style="font-weight:700;color:#5c3d0a;font-size:0.85rem">Install Kuis Kosakata</div>
+        <div style="font-size:0.72rem;color:#9a7030;margin-top:2px">Buka langsung dari homescreen, tanpa buka browser</div>
       </div>
       <button @click="pwaDoInstall()"
         style="background:linear-gradient(135deg,#92610a,#c28a1a);color:#fff7e0;border:none;
@@ -166,17 +168,17 @@
           <div class="flash-divider"></div>
           <div class="flash-arti">{{ currentWord.arti || '—' }}</div>
           <div class="flash-kedudukan" v-if="currentWord.kedudukan">{{ currentWord.kedudukan }}</div>
-
         </div>
       </template>
       <button v-if="!isFlipped" class="flash-shuffle" @click.stop="pickWord">🔀 Kata lain</button>
     </div>
 
-              <div class="flash-actions" @click.stop>
-            <button class="flash-mini-btn flash-sulit" @click="markResult('sulit')">😅 Sulit</button>
-            <button class="flash-mini-btn" @click="playAudio(currentWord)">🔊 Dengar</button>
-            <button class="flash-mini-btn flash-hafal" @click="markResult('hafal')">😊 Hafal</button>
-          </div>
+    <!-- Bar aksi mengambang: selalu tampil selama ada kata (sesuai desainmu) -->
+    <div v-if="currentWord" class="flash-actions" @click.stop>
+      <button class="flash-mini-btn flash-sulit" @click="markResult('sulit')">😅 Sulit</button>
+      <button class="flash-mini-btn" @click="playAudio(currentWord)">🔊 Dengar</button>
+      <button class="flash-mini-btn flash-hafal" @click="markResult('hafal')">😊 Hafal</button>
+    </div>
 
     <!-- ===== MODAL PENGATURAN ===== -->
     <div v-if="showSettings" class="settings-backdrop" @click.self="showSettings = false">
@@ -195,15 +197,26 @@
         </div>
 
         <div class="settings-label">LAINNYA</div>
+        <button v-if="pwaInstallPrompt" class="settings-row-btn" @click="pwaDoInstall">📲 Install App ke Homescreen</button>
         <button class="settings-row-btn" @click="goHome">📚 Buka BacaKitab (app lengkap)</button>
-        <button class="settings-row-btn" @click="loadDummyData">🎲 Muat Data Contoh</button>
-        
+        <!-- Tombol data contoh cuma tampil kalau kamus BENAR-BENAR kosong, biar tidak menimpa data asli -->
+        <button v-if="allWords.length === 0" class="settings-row-btn" @click="loadDummyData">🎲 Muat Data Contoh</button>
+        <button v-if="allWords.length > 0" class="settings-row-btn" @click="clearDictionary" style="color:#b8590a;">🗑️ Kosongkan Kamus</button>
       </div>
     </div>
 
   </div>
 
   <script>
+    // Daftarkan Service Worker yang sama dengan BacaKitab — WAJIB ada supaya
+    // halaman ini dianggap "installable" oleh Chrome (syarat beforeinstallprompt).
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/bacaKitab/sw.js', { scope: '/bacaKitab/' })
+          .catch(err => console.warn('[SW] Gagal daftar:', err));
+      });
+    }
+
     new Vue({
       el: '#app',
       data: {
@@ -272,7 +285,6 @@
             const pool = sorted.slice(0, Math.max(5, Math.ceil(sorted.length * 0.3)));
             this.currentWord = pool[Math.floor(Math.random() * pool.length)];
           } else if (this.wordOrder === 'sulit') {
-            // Random berbobot: kata dengan wrongCount lebih tinggi lebih sering muncul
             const weights = this.allWords.map(w => (w.wrongCount || 0) + 1);
             const total = weights.reduce((a, b) => a + b, 0);
             let r = Math.random() * total;
@@ -287,44 +299,22 @@
           }
         },
 
-markResult(type) {
-    const item = this.currentWord;
-    if (!item) return;
+        markResult(type) {
+          const item = this.currentWord;
+          if (!item) return;
 
-    // Simpan hasil
-    if (type === 'hafal') {
-        item.correctCount = (item.correctCount || 0) + 1;
-    } else {
-        item.wrongCount = (item.wrongCount || 0) + 1;
-    }
+          if (type === 'hafal') item.correctCount = (item.correctCount || 0) + 1;
+          else                  item.wrongCount   = (item.wrongCount   || 0) + 1;
 
-    const idx = this.allWords.findIndex(
-        d => d.timestamp === item.timestamp
-    );
+          const idx = this.allWords.findIndex(d => d.timestamp === item.timestamp);
+          if (idx !== -1) {
+            this.allWords[idx] = { ...this.allWords[idx], ...item };
+            try { localStorage.setItem('myDictionary', JSON.stringify(this.allWords)); } catch(e) {}
+          }
 
-    if (idx !== -1) {
-        this.allWords[idx] = {
-            ...this.allWords[idx],
-            ...item
-        };
-
-        try {
-            localStorage.setItem(
-                'myDictionary',
-                JSON.stringify(this.allWords)
-            );
-        } catch(e) {}
-    }
-
-    // Flip kembali → tampilkan Arab
-    this.isFlipped = false;
-
-    // Setelah kartu terlihat sisi Arab,
-    // tunggu sebentar lalu ambil kata berikutnya
-    setTimeout(() => {
-        this.pickWord();
-    }, 150);
-},
+          this.isFlipped = false;
+          setTimeout(() => { this.pickWord(); }, 150);
+        },
 
         playAudio(item) {
           if (!item || (!item.arab && !item.noHarokat)) return;
@@ -339,7 +329,10 @@ markResult(type) {
           window.speechSynthesis.speak(u);
         },
 
+        // Hanya dipanggil manual dari tombol, dan tombolnya sendiri cuma muncul
+        // kalau allWords.length === 0 — jadi tidak akan pernah menimpa data asli.
         loadDummyData() {
+          if (this.allWords.length > 0) return; // pengaman tambahan
           const now = Date.now();
           const dummy = [
             { arab:'بِسْمِ',      noHarokat:'بسم',      arti:'Dengan nama',        kedudukan:"Jar Majrur — Mudhaf",                         latin:'bismi',      harakatSalah1:'بِسْمَ',      harakatSalah2:'بِسْمُ',      wrongCount:3, correctCount:1 },
