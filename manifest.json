@@ -1,8 +1,8 @@
 {
-  "name": "BacaKitab - Tafsir As-Sadi",
-  "short_name": "BacaKitab",
-  "description": "Aplikasi baca & belajar teks Arab dengan analisis Nahwu",
-  "start_url": "/bacaKitab/",
+  "name": "Kuis Kosakata Arab",
+  "short_name": "Kuis Kosakata",
+  "description": "Flashcard kosakata Arab — kartu kata acak dari kamus BacaKitab",
+  "start_url": "/bacaKitab/kuisKosakata.html",
   "scope": "/bacaKitab/",
   "display": "standalone",
   "orientation": "any",
