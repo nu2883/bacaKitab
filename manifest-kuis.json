@@ -2,6 +2,7 @@
   "name": "Kuis Kosakata Arab",
   "short_name": "Kuis Kosakata",
   "description": "Flashcard kosakata Arab — kartu kata acak dari kamus BacaKitab",
+  "id": "/bacaKitab/kuiskosakata-app-v2",
   "start_url": "/bacaKitab/kuisKosakata.html",
   "scope": "/bacaKitab/",
   "display": "standalone",
